@@ -274,6 +274,33 @@ function renderViewsChart() {
     const labels = sorted.map(ch => ch.channel_title || ch.channel_id);
     const data = sorted.map(ch => ch.total_views || 0);
 
+    // Show placeholder if no data
+    if (labels.length === 0 || data.every(v => v === 0)) {
+        ctx.style.display = 'none';
+        const parent = ctx.parentElement;
+        let placeholder = parent.querySelector('.chart-placeholder');
+        if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.className = 'chart-placeholder text-center py-8 text-gray-500 text-sm';
+            placeholder.innerHTML = '<i class="fas fa-chart-bar text-2xl mb-2 block text-gray-600"></i>Нет данных для отображения';
+            parent.appendChild(placeholder);
+        }
+        placeholder.style.display = 'block';
+        if (viewsChartInstance) { viewsChartInstance.destroy(); viewsChartInstance = null; }
+        return;
+    }
+
+    // Hide placeholder if data exists
+    ctx.style.display = 'block';
+    const parent = ctx.parentElement;
+    const placeholder = parent.querySelector('.chart-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+
+    if (viewsChartInstance) {
+        viewsChartInstance.destroy();
+    }
+    const data = sorted.map(ch => ch.total_views || 0);
+
     if (viewsChartInstance) {
         viewsChartInstance.destroy();
     }
@@ -317,6 +344,30 @@ function renderTimelineChart() {
     if (!ctx) return;
 
     const videos = getAllVideos();
+
+    // Show placeholder if no videos
+    if (videos.length === 0) {
+        ctx.style.display = 'none';
+        const parent = ctx.parentElement;
+        let placeholder = parent.querySelector('.chart-placeholder');
+        if (!placeholder) {
+            placeholder = document.createElement('div');
+            placeholder.className = 'chart-placeholder text-center py-8 text-gray-500 text-sm';
+            placeholder.innerHTML = '<i class="fas fa-chart-line text-2xl mb-2 block text-gray-600"></i>Нет данных для отображения';
+            parent.appendChild(placeholder);
+        }
+        placeholder.style.display = 'block';
+        if (timelineChartInstance) { timelineChartInstance.destroy(); timelineChartInstance = null; }
+        return;
+    }
+
+    // Hide placeholder if data exists
+    ctx.style.display = 'block';
+    const parent = ctx.parentElement;
+    const placeholder = parent.querySelector('.chart-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+
+    const dateMap = new Map();
     const dateMap = new Map();
 
     videos.forEach(v => {
@@ -658,6 +709,19 @@ function renderDashboard() {
     document.getElementById('dashboard').classList.remove('hidden');
 
     const now = new Date().toLocaleString('ru-RU');
+    document.getElementById('lastUpdate').textContent = `Обновлено: ${now}`;
+
+    renderCompetitors();
+    renderVideos();
+    renderKeywords();
+    renderIdeas();
+    // Delay chart rendering so canvas has proper dimensions after unhiding
+    setTimeout(() => renderCharts(), 150);
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
     document.getElementById('lastUpdate').textContent = `Обновлено: ${now}`;
 
     renderCompetitors();

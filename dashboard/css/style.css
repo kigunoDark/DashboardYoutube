@@ -112,3 +112,17 @@ canvas {
 #competitorsList > div:hover {
     border-left: 3px solid #f97316;
 }
+/* Video scroll container scrollbar */
+#videosScrollContainer::-webkit-scrollbar {
+    width: 6px;
+}
+#videosScrollContainer::-webkit-scrollbar-track {
+    background: #161b22;
+}
+#videosScrollContainer::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 3px;
+}
+#videosScrollContainer::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
