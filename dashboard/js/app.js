@@ -1,5 +1,5 @@
-// BUKA YouTube System Dashboard v2
-// Competitor selector + filtered analytics + pagination + real data
+// BUKA YT Radar — VidIQ-style Dashboard
+// Two-column layout: videos left, competitors right
 
 let currentData = {
     monitor: null,
@@ -9,13 +9,10 @@ let currentData = {
 
 let selectedChannels = new Set();
 let searchQuery = '';
-let viewsChartInstance = null;
-let allCompetitorsList = [];
-
-// Pagination state
-let compCurrentPage = 1;
+let sortBy = 'views';
+let timeRange = 'all';
 let videosCurrentPage = 1;
-const ITEMS_PER_PAGE = 10;
+const VIDEOS_PER_PAGE = 15;
 
 const ADMIN_STORAGE_KEY = 'buka_competitors';
 
@@ -73,7 +70,7 @@ function categorizeFile(filename, data) {
 }
 
 // ═══════════════════════════════════════════
-// COMPETITOR SELECTOR
+// DATA BUILDERS
 // ═══════════════════════════════════════════
 
 function buildCompetitorsList() {
@@ -93,20 +90,17 @@ function buildCompetitorsList() {
         seen.add(id);
 
         const monitored = monitorMap.get(id);
-        const firstVideo = monitored?.videos?.[0];
-        const enrichedName = monitored?.channel_title || firstVideo?.channel || admin.name || id;
-        const lastVideo = monitored?.videos?.[0];
+        const enrichedName = monitored?.channel_title || admin.name || id;
         const subs = monitored?.subscriber_count;
+        const thumb = monitored?.channel_thumbnail;
 
         result.push({
             channel_id: id,
             name: enrichedName,
             url: admin.url || `https://www.youtube.com/channel/${id}`,
             subscribers: subs ? formatNumber(subs) : '—',
-            lastVideoTitle: lastVideo?.title || '—',
-            lastVideoUrl: lastVideo?.url || '#',
-            avatarInitial: (enrichedName || '?').charAt(0).toUpperCase(),
-            avatarColor: stringToColor(id),
+            subscriber_count: subs || 0,
+            thumbnail: thumb || null,
             source: monitored ? 'json' : 'admin'
         });
     });
@@ -115,20 +109,17 @@ function buildCompetitorsList() {
         if (seen.has(ch.channel_id)) return;
         seen.add(ch.channel_id);
 
-        const firstVideo = ch.videos?.[0];
-        const channelName = ch.channel_title || firstVideo?.channel || ch.channel_id;
-        const lastVideo = ch.videos?.[0];
+        const channelName = ch.channel_title || ch.channel_id;
         const subs = ch.subscriber_count;
+        const thumb = ch.channel_thumbnail;
 
         result.push({
             channel_id: ch.channel_id,
             name: channelName,
             url: `https://www.youtube.com/channel/${ch.channel_id}`,
             subscribers: subs ? formatNumber(subs) : '—',
-            lastVideoTitle: lastVideo?.title || '—',
-            lastVideoUrl: lastVideo?.url || '#',
-            avatarInitial: (channelName || '?').charAt(0).toUpperCase(),
-            avatarColor: stringToColor(ch.channel_id),
+            subscriber_count: subs || 0,
+            thumbnail: thumb || null,
             source: 'json'
         });
     });
@@ -136,75 +127,124 @@ function buildCompetitorsList() {
     return result;
 }
 
-function stringToColor(str) {
-    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-cyan-500'];
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
+function getAllVideos() {
+    const monitorData = currentData.monitor?.data || [];
+    const videos = [];
+    monitorData.forEach(ch => {
+        (ch.videos || []).forEach(v => {
+            videos.push({
+                ...v,
+                source_channel: ch.channel_title || ch.channel_id,
+                source_channel_id: ch.channel_id,
+                source_subscribers: ch.subscriber_count || 0,
+                source_thumbnail: ch.channel_thumbnail || null
+            });
+        });
+    });
+    return videos;
 }
 
-function renderCompetitorsSelector() {
-    const tbody = document.getElementById('competitorsSelectorBody');
-    const paginationContainer = document.getElementById('competitorsPagination');
-    tbody.innerHTML = '';
+function filterVideosByTime(videos) {
+    if (timeRange === 'all') return videos;
 
-    allCompetitorsList = buildCompetitorsList();
-    let filtered = allCompetitorsList;
+    const now = new Date();
+    const days = parseInt(timeRange);
+    if (!days) return videos; // 'month' or 'week' not implemented yet, fallback
 
-    if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        filtered = allCompetitorsList.filter(c => c.name.toLowerCase().includes(q));
+    const cutoff = new Date(now - days * 24 * 60 * 60 * 1000);
+    return videos.filter(v => {
+        const date = v.published_at ? new Date(v.published_at) : 
+                     v.upload_date ? new Date(v.upload_date.slice(0,4), v.upload_date.slice(4,6)-1, v.upload_date.slice(6,8)) : null;
+        return date && date >= cutoff;
+    });
+}
+
+function sortVideos(videos) {
+    const sorted = [...videos];
+    switch (sortBy) {
+        case 'views':
+            sorted.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            break;
+        case 'likes':
+            sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+            break;
+        case 'comments':
+            sorted.sort((a, b) => (b.comment_count || 0) - (a.comment_count || 0));
+            break;
+        case 'date':
+            sorted.sort((a, b) => {
+                const da = a.published_at ? new Date(a.published_at) : new Date(0);
+                const db = b.published_at ? new Date(b.published_at) : new Date(0);
+                return db - da;
+            });
+            break;
     }
+    return sorted;
+}
 
-    const allSelected = allCompetitorsList.length > 0 && allCompetitorsList.every(c => selectedChannels.has(c.channel_id));
-    document.getElementById('selectAllCheckbox').checked = allSelected;
-    document.getElementById('selectedCount').textContent = `(${selectedChannels.size} выбрано)`;
+function searchVideos(query) {
+    searchQuery = query;
+    videosCurrentPage = 1;
+    renderVideos();
+}
 
-    if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Нет конкурентов. Добавьте их в <a href="admin.html" class="text-orange-400 underline">админке</a> или загрузите JSON.</td></tr>';
-        paginationContainer.innerHTML = '';
+function changeSort(value) {
+    sortBy = value;
+    videosCurrentPage = 1;
+    renderVideos();
+}
+
+function changeTimeRange(value) {
+    timeRange = value;
+    videosCurrentPage = 1;
+    renderVideos();
+}
+
+// ═══════════════════════════════════════════
+// RENDER COMPETITORS (Right Column)
+// ═══════════════════════════════════════════
+
+function renderCompetitors() {
+    const container = document.getElementById('competitorsList');
+    const allCompetitors = buildCompetitorsList();
+
+    if (allCompetitors.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">Нет конкурентов</div>';
         return;
     }
 
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-    if (compCurrentPage > totalPages) compCurrentPage = totalPages;
-    const start = (compCurrentPage - 1) * ITEMS_PER_PAGE;
-    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
+    // Select all by default on first load
+    if (selectedChannels.size === 0) {
+        allCompetitors.forEach(c => selectedChannels.add(c.channel_id));
+    }
 
-    pageItems.forEach(c => {
+    container.innerHTML = allCompetitors.map(c => {
         const isSelected = selectedChannels.has(c.channel_id);
-        const sourceBadge = c.source === 'json'
-            ? '<span class="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">JSON</span>'
-            : '<span class="ml-2 text-[10px] bg-gray-600/50 text-gray-400 px-1.5 py-0.5 rounded">admin</span>';
+        const thumbHtml = c.thumbnail
+            ? `<img src="${c.thumbnail}" alt="" class="w-8 h-8 rounded-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            : '';
+        const fallbackHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-xs font-bold" ${c.thumbnail ? 'style="display:none"' : ''}>${(c.name || '?').charAt(0).toUpperCase()}</div>`;
 
-        const row = document.createElement('tr');
-        row.className = `border-b border-gray-700/50 hover:bg-gray-700/30 transition ${isSelected ? 'bg-orange-500/5' : ''}`;
-        row.innerHTML = `
-            <td class="p-3">
-                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelect('${c.channel_id}')"
-                       class="w-5 h-5 rounded border-gray-600 text-orange-500 focus:ring-orange-500 cursor-pointer">
-            </td>
-            <td class="p-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 ${c.avatarColor} rounded-full flex items-center justify-center text-sm font-bold shrink-0">
-                        ${c.avatarInitial}
-                    </div>
-                    <span class="font-medium">${escapeHtml(c.name)}</span>
-                    ${sourceBadge}
+        return `
+            <div class="p-3 flex items-center gap-3 hover:bg-[#1c2128] transition cursor-pointer" onclick="toggleSelect('${c.channel_id}')">
+                <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                       class="w-4 h-4 rounded border-[#30363d] bg-[#0d1117] text-[#238636] focus:ring-[#238636] cursor-pointer shrink-0"
+                       onclick="event.stopPropagation(); toggleSelect('${c.channel_id}')">
+                <div class="shrink-0">
+                    ${thumbHtml}${fallbackHtml}
                 </div>
-            </td>
-            <td class="p-3 text-gray-400">${c.subscribers}</td>
-            <td class="p-3">
-                <a href="${c.lastVideoUrl}" target="_blank" class="text-orange-400 hover:underline text-sm line-clamp-1">${escapeHtml(c.lastVideoTitle)}</a>
-            </td>
-            <td class="p-3">
-                <a href="${c.url}" target="_blank" class="text-gray-400 hover:text-white text-sm"><i class="fas fa-external-link-alt mr-1"></i>Канал</a>
-            </td>
+                <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm truncate">${escapeHtml(c.name)}</div>
+                    <div class="text-xs text-gray-500">${c.subscribers} подписчиков</div>
+                </div>
+            </div>
         `;
-        tbody.appendChild(row);
-    });
+    }).join('');
 
-    renderPagination(paginationContainer, compCurrentPage, totalPages, filtered.length, 'comp');
+    // Update select-all checkbox
+    const allSelected = allCompetitors.length > 0 && allCompetitors.every(c => selectedChannels.has(c.channel_id));
+    document.getElementById('selectAllCheckbox').checked = allSelected;
+    document.getElementById('selectedCount').textContent = `${selectedChannels.size} выбрано`;
 }
 
 function toggleSelect(channelId) {
@@ -213,429 +253,238 @@ function toggleSelect(channelId) {
     } else {
         selectedChannels.add(channelId);
     }
-    renderCompetitorsSelector();
-    renderAnalytics();
+    renderCompetitors();
+    renderVideos();
+    renderKeywords();
 }
 
 function toggleSelectAll() {
     const checkbox = document.getElementById('selectAllCheckbox');
+    const allCompetitors = buildCompetitorsList();
     if (checkbox.checked) {
-        allCompetitorsList.forEach(c => selectedChannels.add(c.channel_id));
+        allCompetitors.forEach(c => selectedChannels.add(c.channel_id));
     } else {
         selectedChannels.clear();
     }
-    renderCompetitorsSelector();
-    renderAnalytics();
-}
-
-function searchCompetitors(query) {
-    searchQuery = query;
-    compCurrentPage = 1;
-    renderCompetitorsSelector();
-}
-
-function goToCompPage(page) {
-    compCurrentPage = page;
-    renderCompetitorsSelector();
-}
-
-// ═══════════════════════════════════════════
-// PAGINATION UI
-// ═══════════════════════════════════════════
-
-function renderPagination(container, current, total, totalItems, type) {
-    if (total <= 1) {
-        container.innerHTML = `<span class="text-sm text-gray-500">${totalItems} записей</span>`;
-        return;
-    }
-
-    let buttons = '';
-    buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${current - 1})" ${current === 1 ? 'disabled' : ''} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-sm transition"><i class="fas fa-chevron-left"></i></button>`;
-
-    const maxVisible = 5;
-    let startPage = Math.max(1, current - Math.floor(maxVisible / 2));
-    let endPage = Math.min(total, startPage + maxVisible - 1);
-    if (endPage - startPage < maxVisible - 1) {
-        startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    if (startPage > 1) {
-        buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(1)" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm transition">1</button>`;
-        if (startPage > 2) buttons += `<span class="px-2 text-gray-500">...</span>`;
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        const activeClass = i === current ? 'bg-orange-500 text-white' : 'bg-gray-700 hover:bg-gray-600';
-        buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${i})" class="px-3 py-1 rounded ${activeClass} text-sm transition">${i}</button>`;
-    }
-
-    if (endPage < total) {
-        if (endPage < total - 1) buttons += `<span class="px-2 text-gray-500">...</span>`;
-        buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${total})" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm transition">${total}</button>`;
-    }
-
-    buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${current + 1})" ${current === total ? 'disabled' : ''} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-sm transition"><i class="fas fa-chevron-right"></i></button>`;
-
-    container.innerHTML = `
-        <div class="flex items-center gap-2">${buttons}</div>
-        <span class="text-sm text-gray-500">Страница ${current} из ${total} · ${totalItems} всего</span>
-    `;
-}
-
-// ═══════════════════════════════════════════
-// FILTERED DATA
-// ═══════════════════════════════════════════
-
-function getFilteredChannels() {
-    const monitorData = currentData.monitor?.data || [];
-    if (selectedChannels.size === 0) return [];
-
-    const filtered = monitorData.filter(ch => selectedChannels.has(ch.channel_id));
-
-    const adminIds = getAdminCompetitors().filter(c => c.active !== false).map(c => c.id);
-    const monitorIds = new Set(monitorData.map(ch => ch.channel_id));
-
-    adminIds.forEach(id => {
-        if (selectedChannels.has(id) && !monitorIds.has(id)) {
-            filtered.push({
-                channel_id: id,
-                videos: [],
-                _placeholder: true
-            });
-        }
-    });
-
-    return filtered;
-}
-
-// ═══════════════════════════════════════════
-// RENDER DASHBOARD
-// ═══════════════════════════════════════════
-
-function renderDashboard() {
-    document.getElementById('emptyState').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
-    document.getElementById('dashboard').classList.add('animate-fade-in');
-
-    const now = new Date().toLocaleString('ru-RU');
-    document.getElementById('lastUpdate').textContent = `Обновлено: ${now}`;
-
-    if (selectedChannels.size === 0 && allCompetitorsList.length > 0) {
-        allCompetitorsList.forEach(c => selectedChannels.add(c.channel_id));
-    }
-
-    renderCompetitorsSelector();
-    renderAnalytics();
-}
-
-function renderAnalytics() {
-    renderStats();
-    renderVideosTable();
-    renderCharts();
+    renderCompetitors();
+    renderVideos();
     renderKeywords();
-    renderIdeas();
-    renderScripts();
 }
 
 // ═══════════════════════════════════════════
-// STATS
+// RENDER VIDEOS (Left Column)
 // ═══════════════════════════════════════════
 
-function renderStats() {
-    const filteredChannels = getFilteredChannels();
-    let videos = 0, ideas = 0, avgViews = 0;
-
-    let totalViews = 0;
-    let count = 0;
-    filteredChannels.forEach(ch => {
-        (ch.videos || []).forEach(v => {
-            if (v.view_count) {
-                totalViews += v.view_count;
-                count++;
-            }
-        });
-    });
-    videos = count;
-    avgViews = count > 0 ? Math.round(totalViews / count) : 0;
-
-    if (currentData.ideas) {
-        ideas = (currentData.ideas.ideas || []).length;
-    }
-
-    document.getElementById('statChannels').textContent = filteredChannels.length;
-    document.getElementById('statVideos').textContent = videos;
-    document.getElementById('statIdeas').textContent = ideas;
-    document.getElementById('statAvgViews').textContent = formatNumber(avgViews);
-}
-
-// ═══════════════════════════════════════════
-// VIDEOS TABLE
-// ═══════════════════════════════════════════
-
-let allVideosCache = [];
-
-function renderVideosTable() {
-    const tbody = document.getElementById('videosTableBody');
+function renderVideos() {
+    const container = document.getElementById('videosList');
     const paginationContainer = document.getElementById('videosPagination');
-    tbody.innerHTML = '';
 
-    const filteredChannels = getFilteredChannels();
-    if (!filteredChannels.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Выберите конкурентов выше</td></tr>';
+    let allVideos = getAllVideos();
+
+    // Filter by selected channels
+    allVideos = allVideos.filter(v => selectedChannels.has(v.source_channel_id));
+
+    // Filter by time
+    allVideos = filterVideosByTime(allVideos);
+
+    // Filter by search
+    if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        allVideos = allVideos.filter(v => 
+            (v.title || '').toLowerCase().includes(q) ||
+            (v.source_channel || '').toLowerCase().includes(q)
+        );
+    }
+
+    // Sort
+    allVideos = sortVideos(allVideos);
+
+    document.getElementById('videosCount').textContent = `${allVideos.length} видео`;
+
+    if (allVideos.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-500 text-sm">Нет видео по выбранным фильтрам</div>';
         paginationContainer.innerHTML = '';
         return;
     }
 
-    allVideosCache = [];
-    filteredChannels.forEach(ch => {
-        (ch.videos || []).forEach(v => {
-            allVideosCache.push({
-                channel: v.channel || ch.channel_id,
-                title: v.title || 'N/A',
-                views: v.view_count || 0,
-                likes: v.like_count || 0,
-                comments: v.comment_count || 0,
-                date: v.upload_date || '',
-                url: v.url || '#'
-            });
-        });
-    });
-
-    if (allVideosCache.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Нет данных о видео. Запустите агентов для сбора.</td></tr>';
-        paginationContainer.innerHTML = '';
-        return;
-    }
-
-    allVideosCache.sort((a, b) => b.views - a.views);
-
-    const totalPages = Math.ceil(allVideosCache.length / ITEMS_PER_PAGE) || 1;
+    // Pagination
+    const totalPages = Math.ceil(allVideos.length / VIDEOS_PER_PAGE) || 1;
     if (videosCurrentPage > totalPages) videosCurrentPage = totalPages;
-    const start = (videosCurrentPage - 1) * ITEMS_PER_PAGE;
-    const pageItems = allVideosCache.slice(start, start + ITEMS_PER_PAGE);
+    const start = (videosCurrentPage - 1) * VIDEOS_PER_PAGE;
+    const pageVideos = allVideos.slice(start, start + VIDEOS_PER_PAGE);
 
-    pageItems.forEach(v => {
-        const er = v.views > 0 ? ((v.likes + v.comments * 2) / v.views * 100).toFixed(2) : '0';
-        const dateStr = v.date ? `${v.date.slice(0,4)}-${v.date.slice(4,6)}-${v.date.slice(6,8)}` : '';
+    container.innerHTML = pageVideos.map((v, i) => {
+        const globalIndex = start + i + 1;
+        const views = v.view_count || 0;
+        const likes = v.like_count || 0;
+        const dateStr = formatDate(v.published_at || v.upload_date);
+        const durationStr = formatDuration(v.duration);
 
-        const row = document.createElement('tr');
-        row.className = 'border-b border-gray-700';
-        row.innerHTML = `
-            <td class="p-3 text-gray-300">${v.channel.slice(0, 20)}...</td>
-            <td class="p-3">
-                <a href="${v.url}" target="_blank" class="text-orange-400 hover:text-orange-300 hover:underline line-clamp-2">${v.title}</a>
-            </td>
-            <td class="p-3 text-right font-mono">${formatNumber(v.views)}</td>
-            <td class="p-3 text-right font-mono text-green-400">${formatNumber(v.likes)}</td>
-            <td class="p-3 text-right font-mono">${er}%</td>
-            <td class="p-3 text-gray-400">${dateStr}</td>
+        // Anomaly indicator (simple: top 10% by views)
+        const isAnomaly = globalIndex <= 3;
+
+        return `
+            <div class="bg-[#161b22] rounded-xl border border-[#30363d] p-3 flex gap-3 hover:border-[#58a6ff] transition group">
+                <!-- Thumbnail -->
+                <div class="relative shrink-0 w-[160px] h-[90px] rounded-lg overflow-hidden bg-[#0d1117]">
+                    ${v.thumbnail ? `<img src="${v.thumbnail}" alt="" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-gray-600\\'><i class=\\'fas fa-play\\'></i></div>'">` : `<div class="w-full h-full flex items-center justify-center text-gray-600"><i class="fas fa-play"></i></div>`}
+                    ${durationStr ? `<span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded">${durationStr}</span>` : ''}
+                    ${isAnomaly ? `<span class="absolute top-1 left-1 bg-blue-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">${globalIndex}</span>` : ''}
+                </div>
+                <!-- Info -->
+                <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                    <div>
+                        <a href="${v.url || '#'}" target="_blank" class="font-medium text-sm text-white hover:text-[#58a6ff] transition line-clamp-2 leading-tight">${escapeHtml(v.title || 'Без названия')}</a>
+                        <div class="flex items-center gap-2 mt-1.5">
+                            ${v.source_thumbnail ? `<img src="${v.source_thumbnail}" alt="" class="w-4 h-4 rounded-full object-cover" onerror="this.style.display='none'">` : ''}
+                            <span class="text-xs text-gray-400">${escapeHtml(v.source_channel || '')}</span>
+                            <span class="text-xs text-gray-600">•</span>
+                            <span class="text-xs text-gray-500">${formatNumber(v.source_subscribers || 0)} подписчиков</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                        <span class="flex items-center gap-1"><i class="fas fa-eye text-gray-600"></i> ${formatNumber(views)}</span>
+                        <span class="flex items-center gap-1"><i class="fas fa-thumbs-up text-gray-600"></i> ${formatNumber(likes)}</span>
+                        <span>${dateStr}</span>
+                    </div>
+                </div>
+            </div>
         `;
-        tbody.appendChild(row);
-    });
+    }).join('');
 
-    renderPagination(paginationContainer, videosCurrentPage, totalPages, allVideosCache.length, 'videos');
+    renderPagination(paginationContainer, videosCurrentPage, totalPages, allVideos.length);
 }
 
 function goToVideosPage(page) {
     videosCurrentPage = page;
-    renderVideosTable();
+    renderVideos();
 }
 
-// ═══════════════════════════════════════════
-// CHARTS
-// ═══════════════════════════════════════════
+function renderPagination(container, current, total, totalItems) {
+    if (total <= VIDEOS_PER_PAGE) {
+        container.innerHTML = '';
+        return;
+    }
 
-function renderCharts() {
-    if (!currentData.monitor) return;
+    let buttons = '';
+    buttons += `<button onclick="goToVideosPage(${current - 1})" ${current === 1 ? 'disabled' : ''} class="px-2 py-1 rounded bg-[#21262d] hover:bg-[#30363d] disabled:opacity-30 text-xs transition"><i class="fas fa-chevron-left"></i></button>`;
 
-    const filteredChannels = getFilteredChannels();
-    const allVideos = [];
-    filteredChannels.forEach(ch => {
-        (ch.videos || []).forEach(v => {
-            if (v.view_count) {
-                allVideos.push({
-                    title: v.title?.slice(0, 25) + '...' || 'N/A',
-                    views: v.view_count
-                });
-            }
-        });
-    });
-
-    if (allVideos.length === 0) return;
-
-    allVideos.sort((a, b) => b.views - a.views);
-    const top10 = allVideos.slice(0, 10).reverse();
-
-    const ctx = document.getElementById('viewsChart').getContext('2d');
-
-    if (viewsChartInstance) viewsChartInstance.destroy();
-
-    viewsChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: top10.map(v => v.title),
-            datasets: [{
-                label: 'Просмотры',
-                data: top10.map(v => v.views),
-                backgroundColor: 'rgba(249, 115, 22, 0.8)',
-                borderColor: '#f97316',
-                borderWidth: 1,
-                borderRadius: 4
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
-                y: { ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { display: false } }
-            }
+    for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
+            const activeClass = i === current ? 'bg-[#238636] text-white' : 'bg-[#21262d] hover:bg-[#30363d] text-gray-300';
+            buttons += `<button onclick="goToVideosPage(${i})" class="px-2.5 py-1 rounded ${activeClass} text-xs transition">${i}</button>`;
+        } else if (i === current - 2 || i === current + 2) {
+            buttons += `<span class="text-gray-600 text-xs">...</span>`;
         }
-    });
+    }
+
+    buttons += `<button onclick="goToVideosPage(${current + 1})" ${current === total ? 'disabled' : ''} class="px-2 py-1 rounded bg-[#21262d] hover:bg-[#30363d] disabled:opacity-30 text-xs transition"><i class="fas fa-chevron-right"></i></button>`;
+
+    container.innerHTML = `
+        <div class="flex items-center gap-1">${buttons}</div>
+        <span class="text-xs text-gray-500">${current} / ${total} страниц · ${totalItems} всего</span>
+    `;
 }
 
 // ═══════════════════════════════════════════
-// KEYWORDS (VidIQ style)
+// RENDER KEYWORDS & HASHTAGS
 // ═══════════════════════════════════════════
 
 function renderKeywords() {
-    const container = document.getElementById('keywordsCloud');
-    container.innerHTML = '';
+    const kwContainer = document.getElementById('keywordsCloud');
+    const htContainer = document.getElementById('hashtagsCloud');
 
-    if (!currentData.ideas || !currentData.ideas.analysis) return;
+    if (!currentData.ideas || !currentData.ideas.analysis) {
+        kwContainer.innerHTML = '<span class="text-xs text-gray-500">Нет данных</span>';
+        htContainer.innerHTML = '<span class="text-xs text-gray-500">Нет данных</span>';
+        return;
+    }
 
     const analysis = currentData.ideas.analysis;
 
-    // SEO Keywords with scores
+    // Keywords
     const keywords = analysis.top_keywords || [];
     if (keywords.length > 0) {
-        const kwTitle = document.createElement('div');
-        kwTitle.className = 'w-full text-xs font-bold text-gray-400 uppercase mb-2';
-        kwTitle.textContent = '🔑 SEO Ключевые слова (взвешенный скор)';
-        container.appendChild(kwTitle);
-
-        keywords.forEach(([word, score]) => {
-            const tag = document.createElement('span');
-            const intensity = Math.min(score / 10, 1);
-            const bgOpacity = 0.2 + intensity * 0.6;
-            tag.className = 'keyword-tag';
-            tag.style.backgroundColor = `rgba(249, 115, 22, ${bgOpacity})`;
-            tag.style.border = '1px solid rgba(249, 115, 22, 0.5)';
-            tag.textContent = `${word} (${score})`;
-            container.appendChild(tag);
-        });
+        kwContainer.innerHTML = keywords.slice(0, 20).map(([word, score]) => {
+            const intensity = Math.min(score / 50, 1);
+            const opacity = 0.3 + intensity * 0.7;
+            return `<span class="text-xs px-2 py-0.5 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400">${word} <span class="text-orange-600">${score}</span></span>`;
+        }).join('');
+    } else {
+        kwContainer.innerHTML = '<span class="text-xs text-gray-500">Нет данных</span>';
     }
 
     // Hashtags
     const hashtags = analysis.top_hashtags || [];
     if (hashtags.length > 0) {
-        const htTitle = document.createElement('div');
-        htTitle.className = 'w-full text-xs font-bold text-gray-400 uppercase mb-2 mt-3';
-        htTitle.textContent = '#️⃣ Хештеги конкурентов';
-        container.appendChild(htTitle);
-
-        hashtags.forEach(([tag, count]) => {
-            const el = document.createElement('span');
-            el.className = 'keyword-tag bg-blue-500/20 text-blue-400 border border-blue-500/30';
-            el.textContent = `#${tag} (${count})`;
-            container.appendChild(el);
-        });
-    }
-
-    // Tags
-    const tags = analysis.top_tags || [];
-    if (tags.length > 0) {
-        const tTitle = document.createElement('div');
-        tTitle.className = 'w-full text-xs font-bold text-gray-400 uppercase mb-2 mt-3';
-        tTitle.textContent = '🏷️ Теги конкурентов';
-        container.appendChild(tTitle);
-
-        tags.forEach(([tag, count]) => {
-            const el = document.createElement('span');
-            el.className = 'keyword-tag bg-green-500/20 text-green-400 border border-green-500/30';
-            el.textContent = `${tag} (${count})`;
-            container.appendChild(el);
-        });
+        htContainer.innerHTML = hashtags.slice(0, 15).map(([tag, count]) => {
+            return `<span class="text-xs px-2 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400">#${tag} <span class="text-blue-600">${count}</span></span>`;
+        }).join('');
+    } else {
+        htContainer.innerHTML = '<span class="text-xs text-gray-500">Нет данных</span>';
     }
 }
 
 // ═══════════════════════════════════════════
-// IDEAS (with tags & hashtags)
+// RENDER IDEAS
 // ═══════════════════════════════════════════
 
 function renderIdeas() {
     const container = document.getElementById('ideasList');
-    container.innerHTML = '';
+    const section = document.getElementById('ideasSection');
 
-    if (!currentData.ideas || !currentData.ideas.ideas) return;
-
-    const categoryColors = {
-        '🔥 Тренд': 'border-red-500',
-        '🎯 Пробел': 'border-green-500',
-        '⚡ Горячая': 'border-yellow-500',
-        '💡 Неожиданный': 'border-purple-500',
-        '📊 Формат': 'border-blue-500'
-    };
-
-    currentData.ideas.ideas.forEach(idea => {
-        const card = document.createElement('div');
-        card.className = `idea-card bg-gray-700 rounded-lg p-4 ${categoryColors[idea.category?.split(' ')[0]] || 'border-orange-500'}`;
-
-        let tagsHtml = '';
-        if (idea.recommended_tags && idea.recommended_tags.length > 0) {
-            tagsHtml = `<div class="flex flex-wrap gap-1 mt-2">${idea.recommended_tags.slice(0, 5).map(t => `<span class="text-[10px] bg-gray-600 px-1.5 py-0.5 rounded text-gray-300">${t}</span>`).join('')}</div>`;
-        }
-
-        let hashtagsHtml = '';
-        if (idea.recommended_hashtags && idea.recommended_hashtags.length > 0) {
-            hashtagsHtml = `<div class="flex flex-wrap gap-1 mt-1">${idea.recommended_hashtags.slice(0, 3).map(h => `<span class="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">#${h}</span>`).join('')}</div>`;
-        }
-
-        card.innerHTML = `
-            <div class="flex items-start justify-between mb-2">
-                <span class="text-xs font-bold text-orange-400 uppercase tracking-wide">${idea.category}</span>
-                <span class="text-xs text-gray-400">${idea.estimated_difficulty}</span>
-            </div>
-            <h4 class="font-bold text-lg mb-2">${idea.idea}</h4>
-            <p class="text-gray-400 text-sm mb-2"><i class="fas fa-film mr-1"></i> ${idea.format}</p>
-            <p class="text-gray-500 text-sm italic">${idea.why_works}</p>
-            ${tagsHtml}
-            ${hashtagsHtml}
-        `;
-        container.appendChild(card);
-    });
-}
-
-// ═══════════════════════════════════════════
-// SCRIPTS
-// ═══════════════════════════════════════════
-
-function renderScripts() {
-    const container = document.getElementById('scriptsList');
-    container.innerHTML = '';
-
-    if (!currentData.scripts || !currentData.scripts.generated_scripts) {
-        container.innerHTML = '<p class="text-gray-500">Нет данных о сценариях. Загрузите scripts_index файл.</p>';
+    if (!currentData.ideas || !currentData.ideas.ideas) {
+        section.classList.add('hidden');
         return;
     }
 
-    currentData.scripts.generated_scripts.forEach((script) => {
-        const item = document.createElement('div');
-        item.className = 'bg-gray-700 rounded-lg p-4 flex items-center justify-between';
-        item.innerHTML = `
-            <div>
-                <span class="text-orange-400 font-bold mr-2">#${script.idea_id}</span>
-                <span class="text-white">${script.idea}</span>
-            </div>
-            <div class="flex gap-2">
-                <span class="text-xs bg-gray-600 px-2 py-1 rounded text-gray-300">prompt</span>
-                <span class="text-xs bg-gray-600 px-2 py-1 rounded text-gray-300">template</span>
+    section.classList.remove('hidden');
+    const ideas = currentData.ideas.ideas;
+
+    const categoryColors = {
+        '🔥 Тренд': 'border-red-500/50 bg-red-500/5',
+        '🎯 Пробел': 'border-green-500/50 bg-green-500/5',
+        '⚡ Горячая': 'border-yellow-500/50 bg-yellow-500/5',
+        '💡 Неожиданный': 'border-purple-500/50 bg-purple-500/5',
+        '📊 Формат': 'border-blue-500/50 bg-blue-500/5'
+    };
+
+    container.innerHTML = ideas.map(idea => {
+        const borderClass = categoryColors[idea.category?.split(' ')[0]] || 'border-gray-700 bg-[#161b22]';
+        let tagsHtml = '';
+        if (idea.recommended_tags && idea.recommended_tags.length > 0) {
+            tagsHtml = `<div class="flex flex-wrap gap-1 mt-2">${idea.recommended_tags.slice(0, 4).map(t => `<span class="text-[10px] bg-[#21262d] px-1.5 py-0.5 rounded text-gray-400">${t}</span>`).join('')}</div>`;
+        }
+        return `
+            <div class="bg-[#161b22] rounded-xl border ${borderClass} p-4 hover:border-[#58a6ff]/50 transition">
+                <div class="flex items-start justify-between mb-2">
+                    <span class="text-[10px] font-bold text-orange-400 uppercase tracking-wide">${idea.category}</span>
+                    <span class="text-[10px] text-gray-500">${idea.estimated_difficulty}</span>
+                </div>
+                <h4 class="font-bold text-sm mb-2 leading-snug">${idea.idea}</h4>
+                <p class="text-gray-400 text-xs mb-1"><i class="fas fa-film mr-1 text-gray-600"></i>${idea.format}</p>
+                <p class="text-gray-600 text-xs italic">${idea.why_works}</p>
+                ${tagsHtml}
             </div>
         `;
-        container.appendChild(item);
-    });
+    }).join('');
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD RENDER
+// ═══════════════════════════════════════════
+
+function renderDashboard() {
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
+
+    const now = new Date().toLocaleString('ru-RU');
+    document.getElementById('lastUpdate').textContent = `Обновлено: ${now}`;
+
+    renderCompetitors();
+    renderVideos();
+    renderKeywords();
+    renderIdeas();
 }
 
 // ═══════════════════════════════════════════
@@ -643,31 +492,47 @@ function renderScripts() {
 // ═══════════════════════════════════════════
 
 function formatNumber(num) {
+    if (!num) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    let date;
+    if (dateStr.includes('T')) {
+        date = new Date(dateStr);
+    } else if (dateStr.length === 8) {
+        date = new Date(dateStr.slice(0,4), dateStr.slice(4,6)-1, dateStr.slice(6,8));
+    } else {
+        return dateStr;
+    }
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'сегодня';
+    if (diffDays === 1) return 'вчера';
+    if (diffDays < 7) return `${diffDays} дн. назад`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} нед. назад`;
+    return `${Math.floor(diffDays / 30)} мес. назад`;
+}
+
+function formatDuration(seconds) {
+    if (!seconds) return '';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    if (m >= 60) {
+        const h = Math.floor(m / 60);
+        const rm = m % 60;
+        return `${h}:${rm.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-function exportTable() {
-    const filteredChannels = getFilteredChannels();
-    let csv = 'Channel,Title,Views,Likes,Comments,URL\n';
-    filteredChannels.forEach(ch => {
-        (ch.videos || []).forEach(v => {
-            csv += `"${ch.channel_id}","${(v.title || '').replace(/"/g, '\\"')}",${v.view_count || 0},${v.like_count || 0},${v.comment_count || 0},"${v.url || ''}"\n`;
-        });
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `competitors_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
 }
 
 // ═══════════════════════════════════════════
@@ -715,7 +580,9 @@ async function loadDemoData() {
         }
     }
 
-    renderDashboard();
+    if (loaded > 0) {
+        renderDashboard();
+    }
 }
 
 loadDemoData();
