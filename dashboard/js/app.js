@@ -804,29 +804,101 @@ dropZone.addEventListener('drop', (e) => {
 // AUTO-LOAD DEMO DATA
 // ═══════════════════════════════════════════
 
-async function loadDemoData() {
-    const files = [
-        { name: 'monitor_report_2026-08-20.json', url: 'data/monitor_report_2026-08-20.json' },
-        { name: 'ideas_report_2026-08-20.json', url: 'data/ideas_report_2026-08-20.json' },
-        { name: 'scripts_index_2026-08-20.json', url: 'data/scripts_index_2026-08-20.json' }
-    ];
+// ═══════════════════════════════════════════
+// AUTO-LOAD DATA
+// ═══════════════════════════════════════════
 
-    let loaded = 0;
-    for (const f of files) {
-        try {
-            const response = await fetch(f.url);
-            if (!response.ok) continue;
-            const data = await response.json();
-            categorizeFile(f.name, data);
-            loaded++;
-        } catch (e) {
-            console.log('Demo data not found:', f.url);
+function getDateStrings(daysBack = 7) {
+    const dates = [];
+    const now = new Date();
+    for (let i = 0; i <= daysBack; i++) {
+        const d = new Date(now - i * 86400000);
+        dates.push(d.toISOString().slice(0, 10));
+    }
+    return dates;
+}
+
+async function tryFetchFile(url, name) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return { name, data };
+    } catch (e) {
+        return null;
+    }
+}
+
+async function discoverAndLoadData() {
+    const dates = getDateStrings(14);
+    const filesToTry = [];
+
+    // Try manifest first
+    const manifest = await tryFetchFile('data/manifest.json', 'manifest.json');
+    if (manifest && manifest.data && manifest.data.files) {
+        for (const f of manifest.data.files) {
+            filesToTry.push({ name: f, url: 'data/' + f });
         }
     }
+
+    // Fallback: try common report filenames
+    for (const date of dates) {
+        filesToTry.push({ name: `monitor_report_${date}.json`, url: `data/monitor_report_${date}.json` });
+        filesToTry.push({ name: `ideas_report_${date}.json`, url: `data/ideas_report_${date}.json` });
+        filesToTry.push({ name: `scripts_index_${date}.json`, url: `data/scripts_index_${date}.json` });
+        filesToTry.push({ name: `pipeline_report_${date}.json`, url: `data/pipeline_report_${date}.json` });
+    }
+
+    // Also try reports/ subdirectory
+    for (const date of dates) {
+        filesToTry.push({ name: `monitor_report_${date}.json`, url: `data/reports/monitor_report_${date}.json` });
+        filesToTry.push({ name: `ideas_report_${date}.json`, url: `data/reports/ideas_report_${date}.json` });
+        filesToTry.push({ name: `scripts_index_${date}.json`, url: `data/reports/scripts_index_${date}.json` });
+    }
+
+    let loaded = 0;
+    const seenUrls = new Set();
+
+    for (const f of filesToTry) {
+        if (seenUrls.has(f.url)) continue;
+        seenUrls.add(f.url);
+
+        const result = await tryFetchFile(f.url, f.name);
+        if (result) {
+            categorizeFile(result.name, result.data);
+            loaded++;
+        }
+    }
+
+    console.log(`Auto-load: ${loaded} files loaded`);
 
     if (loaded > 0) {
         renderDashboard();
     }
 }
 
-loadDemoData();
+function forceReloadData() {
+    // Clear current data
+    currentData = { monitor: null, ideas: null, scripts: null };
+    selectedChannels.clear();
+    searchQuery = '';
+    competitorSearchQuery = '';
+    videosCurrentPage = 1;
+    if (viewsChartInstance) { viewsChartInstance.destroy(); viewsChartInstance = null; }
+    if (timelineChartInstance) { timelineChartInstance.destroy(); timelineChartInstance = null; }
+
+    // Show empty state while loading
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('emptyState').classList.remove('hidden');
+
+    discoverAndLoadData();
+}
+
+// Initial load
+discoverAndLoadData();
+
+// Auto-refresh every 5 minutes
+setInterval(() => {
+    console.log('Auto-refreshing data...');
+    discoverAndLoadData();
+}, 5 * 60 * 1000);
