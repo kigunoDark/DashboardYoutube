@@ -821,10 +821,15 @@ function getDateStrings(daysBack = 7) {
 async function tryFetchFile(url, name) {
     try {
         const response = await fetch(url);
-        if (!response.ok) return null;
+        if (!response.ok) {
+            console.log(`Fetch ${url}: ${response.status}`);
+            return null;
+        }
         const data = await response.json();
+        console.log(`Loaded: ${url} (${Object.keys(data).length} keys)`);
         return { name, data };
     } catch (e) {
+        console.log(`Error fetching ${url}:`, e.message);
         return null;
     }
 }
@@ -872,8 +877,27 @@ async function discoverAndLoadData() {
 
     console.log(`Auto-load: ${loaded} files loaded`);
 
-    if (loaded > 0) {
+    // Always render dashboard if we have ANY data
+    if (currentData.monitor || currentData.ideas || currentData.scripts) {
         renderDashboard();
+    } else {
+        // Ultimate fallback: try dashboard/data/ paths explicitly
+        console.log("Trying fallback paths...");
+        const fallbackFiles = [
+            { name: 'monitor_report_2026-08-20.json', url: 'dashboard/data/monitor_report_2026-08-20.json' },
+            { name: 'ideas_report_2026-08-20.json', url: 'dashboard/data/ideas_report_2026-08-20.json' },
+            { name: 'scripts_index_2026-08-20.json', url: 'dashboard/data/scripts_index_2026-08-20.json' }
+        ];
+        for (const f of fallbackFiles) {
+            const result = await tryFetchFile(f.url, f.name);
+            if (result) {
+                categorizeFile(result.name, result.data);
+                loaded++;
+            }
+        }
+        if (currentData.monitor || currentData.ideas || currentData.scripts) {
+            renderDashboard();
+        }
     }
 }
 
