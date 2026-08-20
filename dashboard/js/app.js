@@ -1,5 +1,6 @@
 // BUKA YouTube System Dashboard v2
 // Competitor selector + filtered analytics
+// Теперь синхронизирован с localStorage админки!
 
 let currentData = {
     monitor: null,
@@ -11,6 +12,22 @@ let selectedChannels = new Set();   // channel_ids that are checked
 let searchQuery = '';               // current search text
 let viewsChartInstance = null;
 let allCompetitorsList = [];        // cached list for search
+
+const ADMIN_STORAGE_KEY = 'buka_competitors';
+
+// ═══════════════════════════════════════════
+// ADMIN SYNC — читаем конкурентов из админки
+// ═══════════════════════════════════════════
+
+function getAdminCompetitors() {
+    try {
+        const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch (e) {
+        console.error('Error reading admin competitors:', e);
+    }
+    return [];
+}
 
 // ═══════════════════════════════════════════
 // FILE HANDLING
@@ -56,26 +73,66 @@ function categorizeFile(filename, data) {
 // ═══════════════════════════════════════════
 
 function buildCompetitorsList() {
-    if (!currentData.monitor || !currentData.monitor.data) return [];
-    
-    return currentData.monitor.data.map(ch => {
+    const adminList = getAdminCompetitors().filter(c => c.active !== false);
+    const monitorData = currentData.monitor?.data || [];
+
+    // Map monitor data by channel_id for quick lookup
+    const monitorMap = new Map();
+    monitorData.forEach(ch => {
+        monitorMap.set(ch.channel_id, ch);
+    });
+
+    // Build unified list: admin competitors + monitor data merged
+    const seen = new Set();
+    const result = [];
+
+    // 1. Start with admin competitors (from localStorage)
+    adminList.forEach(admin => {
+        const id = admin.id;
+        seen.add(id);
+
+        // Try to find enriched data from monitor JSON
+        const monitored = monitorMap.get(id);
+        const firstVideo = monitored?.videos?.[0];
+        const enrichedName = firstVideo?.channel || monitored?.channel_id || admin.name || id;
+        const lastVideo = monitored?.videos?.[0];
+
+        result.push({
+            channel_id: id,
+            name: enrichedName,
+            url: admin.url || `https://www.youtube.com/channel/${id}`,
+            subscribers: '—', // would need API
+            lastVideoTitle: lastVideo?.title || '—',
+            lastVideoUrl: lastVideo?.url || '#',
+            avatarInitial: (enrichedName || '?').charAt(0).toUpperCase(),
+            avatarColor: stringToColor(id),
+            source: monitored ? 'json' : 'admin'
+        });
+    });
+
+    // 2. Add any monitor channels not in admin list (legacy / uploaded JSON)
+    monitorData.forEach(ch => {
+        if (seen.has(ch.channel_id)) return;
+        seen.add(ch.channel_id);
+
         const firstVideo = ch.videos?.[0];
         const channelName = firstVideo?.channel || ch.channel_id;
-        const subs = firstVideo?.channel_follower_count || firstVideo?.uploader_id ? '—' : '—';
-        // yt-dlp doesn't always return subscriber count; we'll show "—" for now
-        // Last video
         const lastVideo = ch.videos?.[0];
-        return {
+
+        result.push({
             channel_id: ch.channel_id,
             name: channelName,
             url: `https://www.youtube.com/channel/${ch.channel_id}`,
-            subscribers: '—', // would need API or extra scraping
+            subscribers: '—',
             lastVideoTitle: lastVideo?.title || '—',
             lastVideoUrl: lastVideo?.url || '#',
             avatarInitial: (channelName || '?').charAt(0).toUpperCase(),
-            avatarColor: stringToColor(ch.channel_id)
-        };
+            avatarColor: stringToColor(ch.channel_id),
+            source: 'json'
+        });
     });
+
+    return result;
 }
 
 function stringToColor(str) {
@@ -88,27 +145,31 @@ function stringToColor(str) {
 function renderCompetitorsSelector() {
     const tbody = document.getElementById('competitorsSelectorBody');
     tbody.innerHTML = '';
-    
+
     allCompetitorsList = buildCompetitorsList();
     let filtered = allCompetitorsList;
-    
+
     if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         filtered = allCompetitorsList.filter(c => c.name.toLowerCase().includes(q));
     }
-    
+
     // Update select-all checkbox state
     const allSelected = allCompetitorsList.length > 0 && allCompetitorsList.every(c => selectedChannels.has(c.channel_id));
     document.getElementById('selectAllCheckbox').checked = allSelected;
     document.getElementById('selectedCount').textContent = `(${selectedChannels.size} выбрано)`;
-    
+
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Ничего не найдено</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Нет конкурентов. Добавьте их в <a href="admin.html" class="text-orange-400 underline">админке</a> или загрузите JSON.</td></tr>';
         return;
     }
-    
+
     filtered.forEach(c => {
         const isSelected = selectedChannels.has(c.channel_id);
+        const sourceBadge = c.source === 'json'
+            ? '<span class="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">JSON</span>'
+            : '<span class="ml-2 text-[10px] bg-gray-600/50 text-gray-400 px-1.5 py-0.5 rounded">admin</span>';
+
         const row = document.createElement('tr');
         row.className = `border-b border-gray-700/50 hover:bg-gray-700/30 transition ${isSelected ? 'bg-orange-500/5' : ''}`;
         row.innerHTML = `
@@ -122,6 +183,7 @@ function renderCompetitorsSelector() {
                         ${c.avatarInitial}
                     </div>
                     <span class="font-medium">${escapeHtml(c.name)}</span>
+                    ${sourceBadge}
                 </div>
             </td>
             <td class="p-3 text-gray-400">${c.subscribers}</td>
@@ -167,9 +229,28 @@ function searchCompetitors(query) {
 // ═══════════════════════════════════════════
 
 function getFilteredChannels() {
-    if (!currentData.monitor || !currentData.monitor.data) return [];
+    const monitorData = currentData.monitor?.data || [];
     if (selectedChannels.size === 0) return [];
-    return currentData.monitor.data.filter(ch => selectedChannels.has(ch.channel_id));
+
+    // Return monitor data for selected channels
+    const filtered = monitorData.filter(ch => selectedChannels.has(ch.channel_id));
+
+    // If some selected channels have no monitor data yet, return placeholder objects
+    // so the table doesn't break
+    const adminIds = getAdminCompetitors().filter(c => c.active !== false).map(c => c.id);
+    const monitorIds = new Set(monitorData.map(ch => ch.channel_id));
+
+    adminIds.forEach(id => {
+        if (selectedChannels.has(id) && !monitorIds.has(id)) {
+            filtered.push({
+                channel_id: id,
+                videos: [],
+                _placeholder: true
+            });
+        }
+    });
+
+    return filtered;
 }
 
 // ═══════════════════════════════════════════
@@ -184,9 +265,9 @@ function renderDashboard() {
     const now = new Date().toLocaleString('ru-RU');
     document.getElementById('lastUpdate').textContent = `Обновлено: ${now}`;
 
-    // Select all by default on first load
-    if (selectedChannels.size === 0 && currentData.monitor?.data) {
-        currentData.monitor.data.forEach(ch => selectedChannels.add(ch.channel_id));
+    // Select all by default on first load (only if nothing selected yet)
+    if (selectedChannels.size === 0 && allCompetitorsList.length > 0) {
+        allCompetitorsList.forEach(c => selectedChannels.add(c.channel_id));
     }
 
     renderCompetitorsSelector();
@@ -262,6 +343,11 @@ function renderVideosTable() {
         });
     });
 
+    if (allVideos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Нет данных о видео. Запустите агентов для сбора.</td></tr>';
+        return;
+    }
+
     allVideos.sort((a, b) => b.views - a.views);
 
     allVideos.forEach(v => {
@@ -303,6 +389,8 @@ function renderCharts() {
             }
         });
     });
+
+    if (allVideos.length === 0) return;
 
     allVideos.sort((a, b) => b.views - a.views);
     const top10 = allVideos.slice(0, 10).reverse();
@@ -497,10 +585,9 @@ async function loadDemoData() {
         }
     }
 
-    if (loaded > 0) {
-        console.log(`Auto-loaded ${loaded} demo files`);
-        renderDashboard();
-    }
+    // Always render dashboard — even without JSON data,
+    // because admin competitors are stored in localStorage
+    renderDashboard();
 }
 
 loadDemoData();
