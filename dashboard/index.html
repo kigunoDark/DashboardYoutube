@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-[#0d1117] text-white min-h-screen">
     <!-- Header -->
@@ -38,25 +39,41 @@
     <!-- Filters Bar -->
     <div class="bg-[#161b22] border-b border-[#30363d]">
         <div class="max-w-[1600px] mx-auto px-4 py-2 flex items-center gap-3 flex-wrap">
-            <div class="flex items-center gap-2 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-1.5">
-                <i class="fas fa-eye text-gray-500 text-xs"></i>
-                <select id="sortBy" onchange="changeSort(this.value)" class="bg-transparent text-sm text-white focus:outline-none cursor-pointer">
-                    <option value="views">Просмотры</option>
-                    <option value="likes">Лайки</option>
-                    <option value="comments">Комментарии</option>
-                    <option value="date">Дата</option>
-                </select>
+            <!-- Custom Sort Dropdown -->
+            <div class="relative" id="sortDropdownWrap">
+                <button onclick="toggleDropdown('sortDropdown')" class="flex items-center gap-2 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-1.5 hover:border-[#58a6ff] transition text-sm">
+                    <i class="fas fa-eye text-gray-500 text-xs"></i>
+                    <span id="sortLabel">Просмотры</span>
+                    <i class="fas fa-chevron-down text-gray-500 text-[10px] ml-1"></i>
+                </button>
+                <div id="sortDropdown" class="dropdown-menu hidden absolute top-full left-0 mt-1 w-40 bg-[#161b22] border border-[#30363d] rounded-lg shadow-xl z-50 overflow-hidden">
+                    <div class="py-1">
+                        <button onclick="changeSort('views')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition"><i class="fas fa-eye mr-2 text-gray-500"></i>Просмотры</button>
+                        <button onclick="changeSort('likes')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition"><i class="fas fa-thumbs-up mr-2 text-gray-500"></i>Лайки</button>
+                        <button onclick="changeSort('comments')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition"><i class="fas fa-comment mr-2 text-gray-500"></i>Комментарии</button>
+                        <button onclick="changeSort('date')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition"><i class="fas fa-calendar mr-2 text-gray-500"></i>Дата</button>
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center gap-2 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-1.5">
-                <i class="fas fa-calendar text-gray-500 text-xs"></i>
-                <select id="timeRange" onchange="changeTimeRange(this.value)" class="bg-transparent text-sm text-white focus:outline-none cursor-pointer">
-                    <option value="all">Всё время</option>
-                    <option value="month">Этот месяц</option>
-                    <option value="week">Эта неделя</option>
-                    <option value="7">Последние 7 дней</option>
-                    <option value="30">Последние 30 дней</option>
-                </select>
+
+            <!-- Custom Time Range Dropdown -->
+            <div class="relative" id="timeDropdownWrap">
+                <button onclick="toggleDropdown('timeDropdown')" class="flex items-center gap-2 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-1.5 hover:border-[#58a6ff] transition text-sm">
+                    <i class="fas fa-calendar text-gray-500 text-xs"></i>
+                    <span id="timeLabel">Всё время</span>
+                    <i class="fas fa-chevron-down text-gray-500 text-[10px] ml-1"></i>
+                </button>
+                <div id="timeDropdown" class="dropdown-menu hidden absolute top-full left-0 mt-1 w-44 bg-[#161b22] border border-[#30363d] rounded-lg shadow-xl z-50 overflow-hidden">
+                    <div class="py-1">
+                        <button onclick="changeTimeRange('all')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition">Всё время</button>
+                        <button onclick="changeTimeRange('month')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition">Этот месяц</button>
+                        <button onclick="changeTimeRange('week')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition">Эта неделя</button>
+                        <button onclick="changeTimeRange('7')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition">Последние 7 дней</button>
+                        <button onclick="changeTimeRange('30')" class="w-full text-left px-3 py-2 text-sm hover:bg-[#21262d] text-white transition">Последние 30 дней</button>
+                    </div>
+                </div>
             </div>
+
             <div class="flex items-center gap-2 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-1.5 flex-1 min-w-[200px] max-w-sm">
                 <i class="fas fa-search text-gray-500 text-xs"></i>
                 <input type="text" id="searchVideos" placeholder="Поиск по видео..." 
@@ -83,18 +100,33 @@
 
         <!-- Dashboard Content -->
         <div id="dashboard" class="hidden flex gap-4">
-            <!-- Left Column: Videos -->
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="font-bold text-sm text-gray-400 uppercase tracking-wide">Видео конкурентов</h2>
-                    <span id="videosCount" class="text-xs text-gray-500">0 видео</span>
+            <!-- Left Column: Videos + Charts -->
+            <div class="flex-1 min-w-0 space-y-4">
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="bg-[#161b22] rounded-xl border border-[#30363d] p-4">
+                        <h3 class="font-bold text-sm mb-3 text-gray-400">📊 Просмотры по каналам</h3>
+                        <canvas id="viewsChart"></canvas>
+                    </div>
+                    <div class="bg-[#161b22] rounded-xl border border-[#30363d] p-4">
+                        <h3 class="font-bold text-sm mb-3 text-gray-400">📈 Динамика публикаций</h3>
+                        <canvas id="timelineChart"></canvas>
+                    </div>
                 </div>
-                <div id="videosList" class="space-y-2">
-                    <!-- Dynamic video cards -->
-                </div>
-                <!-- Videos Pagination -->
-                <div id="videosPagination" class="mt-4 flex items-center justify-between">
-                    <!-- Dynamic -->
+
+                <!-- Videos List -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="font-bold text-sm text-gray-400 uppercase tracking-wide">Видео конкурентов</h2>
+                        <span id="videosCount" class="text-xs text-gray-500">0 видео</span>
+                    </div>
+                    <div id="videosList" class="space-y-2">
+                        <!-- Dynamic video cards -->
+                    </div>
+                    <!-- Videos Pagination -->
+                    <div id="videosPagination" class="mt-4 flex items-center justify-between">
+                        <!-- Dynamic -->
+                    </div>
                 </div>
             </div>
 
@@ -109,7 +141,17 @@
                             <label for="selectAllCheckbox" class="text-xs text-gray-400 cursor-pointer">Все</label>
                         </div>
                     </div>
-                    <div id="competitorsList" class="divide-y divide-[#30363d]">
+                    <!-- Competitor Search -->
+                    <div class="p-3 border-b border-[#30363d]">
+                        <div class="flex items-center gap-2 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-1.5">
+                            <i class="fas fa-search text-gray-500 text-xs"></i>
+                            <input type="text" id="searchCompetitors" placeholder="Поиск конкурентов..." 
+                                   oninput="searchCompetitors(this.value)"
+                                   class="bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none w-full">
+                        </div>
+                    </div>
+                    <!-- Competitors List (scrollable) -->
+                    <div id="competitorsList" class="divide-y divide-[#30363d] max-h-[500px] overflow-y-auto">
                         <!-- Dynamic competitor items -->
                     </div>
                     <div class="p-3 border-t border-[#30363d]">

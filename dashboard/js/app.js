@@ -9,12 +9,58 @@ let currentData = {
 
 let selectedChannels = new Set();
 let searchQuery = '';
+let competitorSearchQuery = '';
 let sortBy = 'views';
 let timeRange = 'all';
 let videosCurrentPage = 1;
 const VIDEOS_PER_PAGE = 15;
 
 const ADMIN_STORAGE_KEY = 'buka_competitors';
+
+// Chart instances
+let viewsChartInstance = null;
+let timelineChartInstance = null;
+
+// Dropdown labels mapping
+const sortLabels = {
+    views: 'Просмотры',
+    likes: 'Лайки',
+    comments: 'Комментарии',
+    date: 'Дата'
+};
+
+const timeLabels = {
+    all: 'Всё время',
+    month: 'Этот месяц',
+    week: 'Эта неделя',
+    '7': 'Последние 7 дней',
+    '30': 'Последние 30 дней'
+};
+
+// ═══════════════════════════════════════════
+// CUSTOM DROPDOWNS
+// ═══════════════════════════════════════════
+
+function toggleDropdown(id) {
+    const dropdown = document.getElementById(id);
+    const isHidden = dropdown.classList.contains('hidden');
+    // Close all dropdowns first
+    document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.add('hidden'));
+    if (isHidden) {
+        dropdown.classList.remove('hidden');
+    }
+}
+
+function closeDropdowns() {
+    document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.add('hidden'));
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.dropdown-menu') && !e.target.closest('[onclick^="toggleDropdown"]')) {
+        closeDropdowns();
+    }
+});
 
 // ═══════════════════════════════════════════
 // ADMIN SYNC
@@ -149,7 +195,7 @@ function filterVideosByTime(videos) {
 
     const now = new Date();
     const days = parseInt(timeRange);
-    if (!days) return videos; // 'month' or 'week' not implemented yet, fallback
+    if (!days) return videos;
 
     const cutoff = new Date(now - days * 24 * 60 * 60 * 1000);
     return videos.filter(v => {
@@ -190,14 +236,138 @@ function searchVideos(query) {
 
 function changeSort(value) {
     sortBy = value;
+    document.getElementById('sortLabel').textContent = sortLabels[value];
+    closeDropdowns();
     videosCurrentPage = 1;
     renderVideos();
 }
 
 function changeTimeRange(value) {
     timeRange = value;
+    document.getElementById('timeLabel').textContent = timeLabels[value];
+    closeDropdowns();
     videosCurrentPage = 1;
     renderVideos();
+}
+
+function searchCompetitors(query) {
+    competitorSearchQuery = query;
+    renderCompetitors();
+}
+
+// ═══════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════
+
+function renderCharts() {
+    renderViewsChart();
+    renderTimelineChart();
+}
+
+function renderViewsChart() {
+    const ctx = document.getElementById('viewsChart');
+    if (!ctx) return;
+
+    const monitorData = currentData.monitor?.data || [];
+    const sorted = [...monitorData].sort((a, b) => (b.total_views || 0) - (a.total_views || 0)).slice(0, 8);
+
+    const labels = sorted.map(ch => ch.channel_title || ch.channel_id);
+    const data = sorted.map(ch => ch.total_views || 0);
+
+    if (viewsChartInstance) {
+        viewsChartInstance.destroy();
+    }
+
+    viewsChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Просмотры',
+                data,
+                backgroundColor: 'rgba(249, 115, 22, 0.7)',
+                borderColor: 'rgba(249, 115, 22, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(48, 54, 61, 0.5)' },
+                    ticks: { color: '#8b949e', callback: v => formatNumber(v) }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#8b949e', maxRotation: 45 }
+                }
+            }
+        }
+    });
+}
+
+function renderTimelineChart() {
+    const ctx = document.getElementById('timelineChart');
+    if (!ctx) return;
+
+    const videos = getAllVideos();
+    const dateMap = new Map();
+
+    videos.forEach(v => {
+        const dateStr = v.published_at ? v.published_at.slice(0, 10) : 
+                       v.upload_date ? `${v.upload_date.slice(0,4)}-${v.upload_date.slice(4,6)}-${v.upload_date.slice(6,8)}` : null;
+        if (!dateStr) return;
+        dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + 1);
+    });
+
+    const sortedDates = Array.from(dateMap.keys()).sort();
+    const last14 = sortedDates.slice(-14);
+    const data = last14.map(d => dateMap.get(d));
+
+    if (timelineChartInstance) {
+        timelineChartInstance.destroy();
+    }
+
+    timelineChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: last14.map(d => d.slice(5)),
+            datasets: [{
+                label: 'Видео',
+                data,
+                borderColor: 'rgba(88, 166, 255, 0.8)',
+                backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: 'rgba(88, 166, 255, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(48, 54, 61, 0.5)' },
+                    ticks: { color: '#8b949e', stepSize: 1 }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#8b949e' }
+                }
+            }
+        }
+    });
 }
 
 // ═══════════════════════════════════════════
@@ -206,7 +376,15 @@ function changeTimeRange(value) {
 
 function renderCompetitors() {
     const container = document.getElementById('competitorsList');
-    const allCompetitors = buildCompetitorsList();
+    let allCompetitors = buildCompetitorsList();
+
+    // Filter by search
+    if (competitorSearchQuery.trim()) {
+        const q = competitorSearchQuery.toLowerCase();
+        allCompetitors = allCompetitors.filter(c => 
+            (c.name || '').toLowerCase().includes(q)
+        );
+    }
 
     if (allCompetitors.length === 0) {
         container.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">Нет конкурентов</div>';
@@ -226,7 +404,7 @@ function renderCompetitors() {
         const fallbackHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-xs font-bold" ${c.thumbnail ? 'style="display:none"' : ''}>${(c.name || '?').charAt(0).toUpperCase()}</div>`;
 
         return `
-            <div class="p-3 flex items-center gap-3 hover:bg-[#1c2128] transition cursor-pointer" onclick="toggleSelect('${c.channel_id}')">
+            <div class="p-3 flex items-center gap-3 hover:bg-[#21262d] transition cursor-pointer group" onclick="toggleSelect('${c.channel_id}')">
                 <input type="checkbox" ${isSelected ? 'checked' : ''} 
                        class="w-4 h-4 rounded border-[#30363d] bg-[#0d1117] text-[#238636] focus:ring-[#238636] cursor-pointer shrink-0"
                        onclick="event.stopPropagation(); toggleSelect('${c.channel_id}')">
@@ -234,7 +412,7 @@ function renderCompetitors() {
                     ${thumbHtml}${fallbackHtml}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-medium text-sm truncate">${escapeHtml(c.name)}</div>
+                    <div class="font-medium text-sm truncate group-hover:text-orange-400 transition">${escapeHtml(c.name)}</div>
                     <div class="text-xs text-gray-500">${c.subscribers} подписчиков</div>
                 </div>
             </div>
@@ -242,7 +420,8 @@ function renderCompetitors() {
     }).join('');
 
     // Update select-all checkbox
-    const allSelected = allCompetitors.length > 0 && allCompetitors.every(c => selectedChannels.has(c.channel_id));
+    const allCompetitorsFull = buildCompetitorsList();
+    const allSelected = allCompetitorsFull.length > 0 && allCompetitorsFull.every(c => selectedChannels.has(c.channel_id));
     document.getElementById('selectAllCheckbox').checked = allSelected;
     document.getElementById('selectedCount').textContent = `${selectedChannels.size} выбрано`;
 }
@@ -324,10 +503,10 @@ function renderVideos() {
         const isAnomaly = globalIndex <= 3;
 
         return `
-            <div class="bg-[#161b22] rounded-xl border border-[#30363d] p-3 flex gap-3 hover:border-[#58a6ff] transition group">
+            <div class="bg-[#161b22] rounded-xl border border-[#30363d] p-3 flex gap-3 hover:border-[#58a6ff] transition group video-card">
                 <!-- Thumbnail -->
                 <div class="relative shrink-0 w-[160px] h-[90px] rounded-lg overflow-hidden bg-[#0d1117]">
-                    ${v.thumbnail ? `<img src="${v.thumbnail}" alt="" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center text-gray-600\\'><i class=\\'fas fa-play\\'></i></div>'">` : `<div class="w-full h-full flex items-center justify-center text-gray-600"><i class="fas fa-play"></i></div>`}
+                    ${v.thumbnail ? `<img src="${v.thumbnail}" alt="" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<div class=\'w-full h-full flex items-center justify-center text-gray-600\'><i class=\'fas fa-play\'></i></div>'">` : `<div class="w-full h-full flex items-center justify-center text-gray-600"><i class="fas fa-play"></i></div>`}
                     ${durationStr ? `<span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1 rounded">${durationStr}</span>` : ''}
                     ${isAnomaly ? `<span class="absolute top-1 left-1 bg-blue-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">${globalIndex}</span>` : ''}
                 </div>
@@ -485,6 +664,7 @@ function renderDashboard() {
     renderVideos();
     renderKeywords();
     renderIdeas();
+    renderCharts();
 }
 
 // ═══════════════════════════════════════════

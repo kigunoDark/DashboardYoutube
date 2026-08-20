@@ -31,6 +31,15 @@ body {
     background: rgba(249, 115, 22, 0.1);
 }
 
+/* Custom Dropdown */
+.dropdown-menu {
+    animation: dropdownFade 0.15s ease-out;
+}
+@keyframes dropdownFade {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Keyword Tags */
 .keyword-tag {
     display: inline-block;
@@ -67,7 +76,7 @@ body {
 
 /* Chart Container */
 canvas {
-    max-height: 300px;
+    max-height: 280px;
 }
 
 /* Animations */
@@ -77,4 +86,29 @@ canvas {
 }
 .animate-fade-in {
     animation: fadeIn 0.4s ease-out;
+}
+
+/* Competitor list scrollbar */
+#competitorsList::-webkit-scrollbar {
+    width: 6px;
+}
+#competitorsList::-webkit-scrollbar-track {
+    background: #161b22;
+}
+#competitorsList::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 3px;
+}
+#competitorsList::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+
+/* Video card hover accent */
+.video-card:hover {
+    border-color: #58a6ff !important;
+}
+
+/* Competitor item hover accent */
+#competitorsList > div:hover {
+    border-left: 3px solid #f97316;
 }
