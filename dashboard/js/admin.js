@@ -1,9 +1,12 @@
 // BUKA Admin Panel — Competitor Management
-// Упрощённая версия: только URL канала
+// Упрощённая версия: только URL канала + поиск + пагинация
 
 const STORAGE_KEY = 'buka_competitors';
 
 let competitors = [];
+let adminSearchQuery = '';
+let adminCurrentPage = 1;
+const ADMIN_ITEMS_PER_PAGE = 10;
 
 // ═══════════════════════════════════════════
 // INIT
@@ -101,6 +104,7 @@ function handleAdd(e) {
 
     competitors.push(newComp);
     saveToStorage();
+    adminCurrentPage = 1; // reset to first page
     renderList();
     updateStats();
 
@@ -139,26 +143,66 @@ function clearAll() {
 }
 
 // ═══════════════════════════════════════════
+// SEARCH & PAGINATION
+// ═══════════════════════════════════════════
+
+function searchAdminCompetitors(query) {
+    adminSearchQuery = query;
+    adminCurrentPage = 1;
+    renderList();
+}
+
+function getFilteredCompetitors() {
+    let list = competitors;
+    if (adminSearchQuery.trim()) {
+        const q = adminSearchQuery.toLowerCase();
+        list = competitors.filter(c =>
+            (c.name || '').toLowerCase().includes(q) ||
+            (c.url || '').toLowerCase().includes(q) ||
+            (c.id || '').toLowerCase().includes(q)
+        );
+    }
+    return list;
+}
+
+function goToAdminPage(page) {
+    const filtered = getFilteredCompetitors();
+    const totalPages = Math.ceil(filtered.length / ADMIN_ITEMS_PER_PAGE) || 1;
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    adminCurrentPage = page;
+    renderList();
+}
+
+// ═══════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════
 
 function renderList() {
     const container = document.getElementById('competitorsList');
+    const paginationContainer = document.getElementById('adminPagination');
+    const filtered = getFilteredCompetitors();
 
-    if (competitors.length === 0) {
+    if (filtered.length === 0) {
         container.innerHTML = `
             <div class="p-8 text-center text-gray-500">
                 <i class="fas fa-inbox text-4xl mb-3"></i>
-                <p>Список пуст. Добавьте первого конкурента слева.</p>
+                <p>Ничего не найдено. Добавьте первого конкурента или измените поиск.</p>
             </div>
         `;
+        paginationContainer.innerHTML = '';
         return;
     }
 
-    container.innerHTML = competitors.map((c, i) => {
+    const totalPages = Math.ceil(filtered.length / ADMIN_ITEMS_PER_PAGE) || 1;
+    const start = (adminCurrentPage - 1) * ADMIN_ITEMS_PER_PAGE;
+    const pageItems = filtered.slice(start, start + ADMIN_ITEMS_PER_PAGE);
+
+    container.innerHTML = pageItems.map((c, i) => {
+        const realIndex = competitors.indexOf(c);
         const initial = (c.name || '?').charAt(0).toUpperCase();
         const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-pink-500'];
-        const colorClass = colors[i % colors.length];
+        const colorClass = colors[realIndex % colors.length];
 
         return `
             <div class="p-4 flex items-center gap-4 hover:bg-gray-750 transition ${!c.active ? 'opacity-50' : ''}">
@@ -178,11 +222,11 @@ function renderList() {
 
                 <!-- Actions -->
                 <div class="flex items-center gap-2 shrink-0">
-                    <button onclick="toggleActive(${i})" title="${c.active ? 'Деактивировать' : 'Активировать'}"
+                    <button onclick="toggleActive(${realIndex})" title="${c.active ? 'Деактивировать' : 'Активировать'}"
                             class="w-10 h-10 rounded-lg ${c.active ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'} transition flex items-center justify-center">
                         <i class="fas ${c.active ? 'fa-check' : 'fa-times'}"></i>
                     </button>
-                    <button onclick="removeCompetitor(${i})" title="Удалить"
+                    <button onclick="removeCompetitor(${realIndex})" title="Удалить"
                             class="w-10 h-10 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition flex items-center justify-center">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -190,6 +234,53 @@ function renderList() {
             </div>
         `;
     }).join('');
+
+    // Render pagination
+    renderPagination(paginationContainer, adminCurrentPage, totalPages, filtered.length);
+}
+
+function renderPagination(container, current, total, totalItems) {
+    if (total <= 1) {
+        container.innerHTML = `<span class="text-sm text-gray-500">${totalItems} конкурентов</span>`;
+        return;
+    }
+
+    let buttons = '';
+    // Prev
+    buttons += `<button onclick="goToAdminPage(${current - 1})" ${current === 1 ? 'disabled' : ''} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-sm transition"><i class="fas fa-chevron-left"></i></button>`;
+
+    // Page numbers
+    const maxVisible = 5;
+    let startPage = Math.max(1, current - Math.floor(maxVisible / 2));
+    let endPage = Math.min(total, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        buttons += `<button onclick="goToAdminPage(1)" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm transition">1</button>`;
+        if (startPage > 2) buttons += `<span class="px-2 text-gray-500">...</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const activeClass = i === current ? 'bg-orange-500 text-white' : 'bg-gray-700 hover:bg-gray-600';
+        buttons += `<button onclick="goToAdminPage(${i})" class="px-3 py-1 rounded ${activeClass} text-sm transition">${i}</button>`;
+    }
+
+    if (endPage < total) {
+        if (endPage < total - 1) buttons += `<span class="px-2 text-gray-500">...</span>`;
+        buttons += `<button onclick="goToAdminPage(${total})" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm transition">${total}</button>`;
+    }
+
+    // Next
+    buttons += `<button onclick="goToAdminPage(${current + 1})" ${current === total ? 'disabled' : ''} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-sm transition"><i class="fas fa-chevron-right"></i></button>`;
+
+    container.innerHTML = `
+        <div class="flex items-center gap-2">
+            ${buttons}
+        </div>
+        <span class="text-sm text-gray-500">Страница ${current} из ${total} · ${totalItems} всего</span>
+    `;
 }
 
 function updateStats() {

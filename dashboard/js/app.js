@@ -1,6 +1,5 @@
 // BUKA YouTube System Dashboard v2
-// Competitor selector + filtered analytics
-// Теперь синхронизирован с localStorage админки!
+// Competitor selector + filtered analytics + pagination
 
 let currentData = {
     monitor: null,
@@ -8,15 +7,20 @@ let currentData = {
     scripts: null
 };
 
-let selectedChannels = new Set();   // channel_ids that are checked
-let searchQuery = '';               // current search text
+let selectedChannels = new Set();
+let searchQuery = '';
 let viewsChartInstance = null;
-let allCompetitorsList = [];        // cached list for search
+let allCompetitorsList = [];
+
+// Pagination state
+let compCurrentPage = 1;
+let videosCurrentPage = 1;
+const ITEMS_PER_PAGE = 10;
 
 const ADMIN_STORAGE_KEY = 'buka_competitors';
 
 // ═══════════════════════════════════════════
-// ADMIN SYNC — читаем конкурентов из админки
+// ADMIN SYNC
 // ═══════════════════════════════════════════
 
 function getAdminCompetitors() {
@@ -76,22 +80,18 @@ function buildCompetitorsList() {
     const adminList = getAdminCompetitors().filter(c => c.active !== false);
     const monitorData = currentData.monitor?.data || [];
 
-    // Map monitor data by channel_id for quick lookup
     const monitorMap = new Map();
     monitorData.forEach(ch => {
         monitorMap.set(ch.channel_id, ch);
     });
 
-    // Build unified list: admin competitors + monitor data merged
     const seen = new Set();
     const result = [];
 
-    // 1. Start with admin competitors (from localStorage)
     adminList.forEach(admin => {
         const id = admin.id;
         seen.add(id);
 
-        // Try to find enriched data from monitor JSON
         const monitored = monitorMap.get(id);
         const firstVideo = monitored?.videos?.[0];
         const enrichedName = firstVideo?.channel || monitored?.channel_id || admin.name || id;
@@ -101,7 +101,7 @@ function buildCompetitorsList() {
             channel_id: id,
             name: enrichedName,
             url: admin.url || `https://www.youtube.com/channel/${id}`,
-            subscribers: '—', // would need API
+            subscribers: '—',
             lastVideoTitle: lastVideo?.title || '—',
             lastVideoUrl: lastVideo?.url || '#',
             avatarInitial: (enrichedName || '?').charAt(0).toUpperCase(),
@@ -110,7 +110,6 @@ function buildCompetitorsList() {
         });
     });
 
-    // 2. Add any monitor channels not in admin list (legacy / uploaded JSON)
     monitorData.forEach(ch => {
         if (seen.has(ch.channel_id)) return;
         seen.add(ch.channel_id);
@@ -144,6 +143,7 @@ function stringToColor(str) {
 
 function renderCompetitorsSelector() {
     const tbody = document.getElementById('competitorsSelectorBody');
+    const paginationContainer = document.getElementById('competitorsPagination');
     tbody.innerHTML = '';
 
     allCompetitorsList = buildCompetitorsList();
@@ -161,10 +161,17 @@ function renderCompetitorsSelector() {
 
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Нет конкурентов. Добавьте их в <a href="admin.html" class="text-orange-400 underline">админке</a> или загрузите JSON.</td></tr>';
+        paginationContainer.innerHTML = '';
         return;
     }
 
-    filtered.forEach(c => {
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+    if (compCurrentPage > totalPages) compCurrentPage = totalPages;
+    const start = (compCurrentPage - 1) * ITEMS_PER_PAGE;
+    const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+    pageItems.forEach(c => {
         const isSelected = selectedChannels.has(c.channel_id);
         const sourceBadge = c.source === 'json'
             ? '<span class="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">JSON</span>'
@@ -196,6 +203,8 @@ function renderCompetitorsSelector() {
         `;
         tbody.appendChild(row);
     });
+
+    renderPagination(paginationContainer, compCurrentPage, totalPages, filtered.length, 'comp');
 }
 
 function toggleSelect(channelId) {
@@ -221,7 +230,56 @@ function toggleSelectAll() {
 
 function searchCompetitors(query) {
     searchQuery = query;
+    compCurrentPage = 1;
     renderCompetitorsSelector();
+}
+
+function goToCompPage(page) {
+    compCurrentPage = page;
+    renderCompetitorsSelector();
+}
+
+// ═══════════════════════════════════════════
+// PAGINATION UI
+// ═══════════════════════════════════════════
+
+function renderPagination(container, current, total, totalItems, type) {
+    if (total <= 1) {
+        container.innerHTML = `<span class="text-sm text-gray-500">${totalItems} записей</span>`;
+        return;
+    }
+
+    let buttons = '';
+    buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${current - 1})" ${current === 1 ? 'disabled' : ''} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-sm transition"><i class="fas fa-chevron-left"></i></button>`;
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, current - Math.floor(maxVisible / 2));
+    let endPage = Math.min(total, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(1)" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm transition">1</button>`;
+        if (startPage > 2) buttons += `<span class="px-2 text-gray-500">...</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const activeClass = i === current ? 'bg-orange-500 text-white' : 'bg-gray-700 hover:bg-gray-600';
+        buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${i})" class="px-3 py-1 rounded ${activeClass} text-sm transition">${i}</button>`;
+    }
+
+    if (endPage < total) {
+        if (endPage < total - 1) buttons += `<span class="px-2 text-gray-500">...</span>`;
+        buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${total})" class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm transition">${total}</button>`;
+    }
+
+    buttons += `<button onclick="goTo${type === 'comp' ? 'Comp' : 'Videos'}Page(${current + 1})" ${current === total ? 'disabled' : ''} class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-sm transition"><i class="fas fa-chevron-right"></i></button>`;
+
+    container.innerHTML = `
+        <div class="flex items-center gap-2">${buttons}</div>
+        <span class="text-sm text-gray-500">Страница ${current} из ${total} · ${totalItems} всего</span>
+    `;
 }
 
 // ═══════════════════════════════════════════
@@ -232,11 +290,8 @@ function getFilteredChannels() {
     const monitorData = currentData.monitor?.data || [];
     if (selectedChannels.size === 0) return [];
 
-    // Return monitor data for selected channels
     const filtered = monitorData.filter(ch => selectedChannels.has(ch.channel_id));
 
-    // If some selected channels have no monitor data yet, return placeholder objects
-    // so the table doesn't break
     const adminIds = getAdminCompetitors().filter(c => c.active !== false).map(c => c.id);
     const monitorIds = new Set(monitorData.map(ch => ch.channel_id));
 
@@ -265,7 +320,6 @@ function renderDashboard() {
     const now = new Date().toLocaleString('ru-RU');
     document.getElementById('lastUpdate').textContent = `Обновлено: ${now}`;
 
-    // Select all by default on first load (only if nothing selected yet)
     if (selectedChannels.size === 0 && allCompetitorsList.length > 0) {
         allCompetitorsList.forEach(c => selectedChannels.add(c.channel_id));
     }
@@ -318,20 +372,24 @@ function renderStats() {
 // VIDEOS TABLE
 // ═══════════════════════════════════════════
 
+let allVideosCache = [];
+
 function renderVideosTable() {
     const tbody = document.getElementById('videosTableBody');
+    const paginationContainer = document.getElementById('videosPagination');
     tbody.innerHTML = '';
 
     const filteredChannels = getFilteredChannels();
     if (!filteredChannels.length) {
         tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Выберите конкурентов выше</td></tr>';
+        paginationContainer.innerHTML = '';
         return;
     }
 
-    const allVideos = [];
+    allVideosCache = [];
     filteredChannels.forEach(ch => {
         (ch.videos || []).forEach(v => {
-            allVideos.push({
+            allVideosCache.push({
                 channel: v.channel || ch.channel_id,
                 title: v.title || 'N/A',
                 views: v.view_count || 0,
@@ -343,14 +401,21 @@ function renderVideosTable() {
         });
     });
 
-    if (allVideos.length === 0) {
+    if (allVideosCache.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Нет данных о видео. Запустите агентов для сбора.</td></tr>';
+        paginationContainer.innerHTML = '';
         return;
     }
 
-    allVideos.sort((a, b) => b.views - a.views);
+    allVideosCache.sort((a, b) => b.views - a.views);
 
-    allVideos.forEach(v => {
+    // Pagination
+    const totalPages = Math.ceil(allVideosCache.length / ITEMS_PER_PAGE) || 1;
+    if (videosCurrentPage > totalPages) videosCurrentPage = totalPages;
+    const start = (videosCurrentPage - 1) * ITEMS_PER_PAGE;
+    const pageItems = allVideosCache.slice(start, start + ITEMS_PER_PAGE);
+
+    pageItems.forEach(v => {
         const er = v.views > 0 ? ((v.likes + v.comments * 2) / v.views * 100).toFixed(2) : '0';
         const dateStr = v.date ? `${v.date.slice(0,4)}-${v.date.slice(4,6)}-${v.date.slice(6,8)}` : '';
 
@@ -368,6 +433,13 @@ function renderVideosTable() {
         `;
         tbody.appendChild(row);
     });
+
+    renderPagination(paginationContainer, videosCurrentPage, totalPages, allVideosCache.length, 'videos');
+}
+
+function goToVideosPage(page) {
+    videosCurrentPage = page;
+    renderVideosTable();
 }
 
 // ═══════════════════════════════════════════
@@ -585,8 +657,6 @@ async function loadDemoData() {
         }
     }
 
-    // Always render dashboard — even without JSON data,
-    // because admin competitors are stored in localStorage
     renderDashboard();
 }
 
