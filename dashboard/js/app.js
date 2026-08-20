@@ -281,28 +281,6 @@ function renderViewsChart() {
     const labels = sorted.map(ch => ch.channel_title || ch.channel_id);
     const data = sorted.map(ch => ch.total_views);
 
-    // Show placeholder if no data
-    if (labels.length === 0 || data.every(v => v === 0)) {
-        ctx.style.display = 'none';
-        const parent = ctx.parentElement;
-        let placeholder = parent.querySelector('.chart-placeholder');
-        if (!placeholder) {
-            placeholder = document.createElement('div');
-            placeholder.className = 'chart-placeholder text-center py-8 text-gray-500 text-sm';
-            placeholder.innerHTML = '<i class="fas fa-chart-bar text-2xl mb-2 block text-gray-600"></i>Нет данных для отображения';
-            parent.appendChild(placeholder);
-        }
-        placeholder.style.display = 'block';
-        if (viewsChartInstance) { viewsChartInstance.destroy(); viewsChartInstance = null; }
-        return;
-    }
-
-    // Hide placeholder if data exists
-    ctx.style.display = 'block';
-    const parent = ctx.parentElement;
-    const placeholder = parent.querySelector('.chart-placeholder');
-    if (placeholder) placeholder.style.display = 'none';
-
     if (viewsChartInstance) {
         viewsChartInstance.destroy();
     }
@@ -346,29 +324,6 @@ function renderTimelineChart() {
     if (!ctx) return;
 
     const videos = getAllVideos();
-
-    // Show placeholder if no videos
-    if (videos.length === 0) {
-        ctx.style.display = 'none';
-        const parent = ctx.parentElement;
-        let placeholder = parent.querySelector('.chart-placeholder');
-        if (!placeholder) {
-            placeholder = document.createElement('div');
-            placeholder.className = 'chart-placeholder text-center py-8 text-gray-500 text-sm';
-            placeholder.innerHTML = '<i class="fas fa-chart-line text-2xl mb-2 block text-gray-600"></i>Нет данных для отображения';
-            parent.appendChild(placeholder);
-        }
-        placeholder.style.display = 'block';
-        if (timelineChartInstance) { timelineChartInstance.destroy(); timelineChartInstance = null; }
-        return;
-    }
-
-    // Hide placeholder if data exists
-    ctx.style.display = 'block';
-    const parent = ctx.parentElement;
-    const placeholder = parent.querySelector('.chart-placeholder');
-    if (placeholder) placeholder.style.display = 'none';
-
     const dateMap = new Map();
 
     videos.forEach(v => {
@@ -723,18 +678,6 @@ function renderDashboard() {
 // ═══════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════
-    document.getElementById('lastUpdate').textContent = `Обновлено: ${now}`;
-
-    renderCompetitors();
-    renderVideos();
-    renderKeywords();
-    renderIdeas();
-    renderCharts();
-}
-
-// ═══════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════
 
 function formatNumber(num) {
     if (!num) return '0';
@@ -805,146 +748,29 @@ dropZone.addEventListener('drop', (e) => {
 // AUTO-LOAD DEMO DATA
 // ═══════════════════════════════════════════
 
-// ═══════════════════════════════════════════
-// AUTO-LOAD DATA
-// ═══════════════════════════════════════════
-
-function getDateStrings(daysBack = 7) {
-    const dates = [];
-    const now = new Date();
-    for (let i = 0; i <= daysBack; i++) {
-        const d = new Date(now - i * 86400000);
-        dates.push(d.toISOString().slice(0, 10));
-    }
-    return dates;
-}
-
-async function tryFetchFile(url, name) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            console.log(`Fetch ${url}: ${response.status}`);
-            return null;
-        }
-        const data = await response.json();
-        console.log(`Loaded: ${url} (${Object.keys(data).length} keys)`);
-        return { name, data };
-    } catch (e) {
-        console.log(`Error fetching ${url}:`, e.message);
-        return null;
-    }
-}
-
-async function discoverAndLoadData() {
-    const dates = getDateStrings(14);
-    const filesToTry = [];
-
-    // Try manifest first
-    const manifest = await tryFetchFile('data/manifest.json', 'manifest.json');
-    if (manifest && manifest.data && manifest.data.files) {
-        for (const f of manifest.data.files) {
-            filesToTry.push({ name: f, url: 'data/' + f });
-        }
-    }
-
-    // Fallback: try common report filenames
-    for (const date of dates) {
-        filesToTry.push({ name: `monitor_report_${date}.json`, url: `data/monitor_report_${date}.json` });
-        filesToTry.push({ name: `ideas_report_${date}.json`, url: `data/ideas_report_${date}.json` });
-        filesToTry.push({ name: `scripts_index_${date}.json`, url: `data/scripts_index_${date}.json` });
-        filesToTry.push({ name: `pipeline_report_${date}.json`, url: `data/pipeline_report_${date}.json` });
-    }
-
-    // Also try reports/ subdirectory
-    for (const date of dates) {
-        filesToTry.push({ name: `monitor_report_${date}.json`, url: `data/reports/monitor_report_${date}.json` });
-        filesToTry.push({ name: `ideas_report_${date}.json`, url: `data/reports/ideas_report_${date}.json` });
-        filesToTry.push({ name: `scripts_index_${date}.json`, url: `data/reports/scripts_index_${date}.json` });
-    }
+async function loadDemoData() {
+    const files = [
+        { name: 'monitor_report_2026-08-20.json', url: 'data/monitor_report_2026-08-20.json' },
+        { name: 'ideas_report_2026-08-20.json', url: 'data/ideas_report_2026-08-20.json' },
+        { name: 'scripts_index_2026-08-20.json', url: 'data/scripts_index_2026-08-20.json' }
+    ];
 
     let loaded = 0;
-    const seenUrls = new Set();
-
-    for (const f of filesToTry) {
-        if (seenUrls.has(f.url)) continue;
-        seenUrls.add(f.url);
-
-        const result = await tryFetchFile(f.url, f.name);
-        if (result) {
-            categorizeFile(result.name, result.data);
+    for (const f of files) {
+        try {
+            const response = await fetch(f.url);
+            if (!response.ok) continue;
+            const data = await response.json();
+            categorizeFile(f.name, data);
             loaded++;
+        } catch (e) {
+            console.log('Demo data not found:', f.url);
         }
     }
 
-    console.log(`Auto-load: ${loaded} files loaded`);
-
-    // Always render dashboard if we have ANY data
-    if (currentData.monitor || currentData.ideas || currentData.scripts) {
+    if (loaded > 0) {
         renderDashboard();
-    } else {
-        // Ultimate fallback: try dashboard/data/ paths explicitly
-        console.log("Trying fallback paths...");
-        const fallbackFiles = [
-            { name: 'monitor_report_2026-08-20.json', url: 'dashboard/data/monitor_report_2026-08-20.json' },
-            { name: 'ideas_report_2026-08-20.json', url: 'dashboard/data/ideas_report_2026-08-20.json' },
-            { name: 'scripts_index_2026-08-20.json', url: 'dashboard/data/scripts_index_2026-08-20.json' }
-        ];
-        for (const f of fallbackFiles) {
-            const result = await tryFetchFile(f.url, f.name);
-            if (result) {
-                categorizeFile(result.name, result.data);
-                loaded++;
-            }
-        }
-        if (currentData.monitor || currentData.ideas || currentData.scripts) {
-            renderDashboard();
-        }
     }
 }
 
-async function forceReloadData() {
-    // Clear current data
-    currentData = { monitor: null, ideas: null, scripts: null };
-    selectedChannels.clear();
-    searchQuery = '';
-    competitorSearchQuery = '';
-    videosCurrentPage = 1;
-    if (viewsChartInstance) { viewsChartInstance.destroy(); viewsChartInstance = null; }
-    if (timelineChartInstance) { timelineChartInstance.destroy(); timelineChartInstance = null; }
-
-    // Show empty state while loading
-    document.getElementById('dashboard').classList.add('hidden');
-    document.getElementById('emptyState').classList.remove('hidden');
-
-    await discoverAndLoadData();
-}
-
-// Initial load
-discoverAndLoadData().catch(e => console.error('Initial load failed:', e));
-    // Clear current data
-    currentData = { monitor: null, ideas: null, scripts: null };
-    selectedChannels.clear();
-    searchQuery = '';
-    competitorSearchQuery = '';
-    videosCurrentPage = 1;
-    if (viewsChartInstance) { viewsChartInstance.destroy(); viewsChartInstance = null; }
-    if (timelineChartInstance) { timelineChartInstance.destroy(); timelineChartInstance = null; }
-
-    // Show empty state while loading
-    document.getElementById('dashboard').classList.add('hidden');
-    document.getElementById('emptyState').classList.remove('hidden');
-
-    discoverAndLoadData();
-}
-
-// Initial load
-discoverAndLoadData();
-
-// Auto-refresh every 5 minutes
-setInterval(() => {
-    console.log('Auto-refreshing data...');
-    discoverAndLoadData().catch(e => console.error('Auto-refresh failed:', e));
-}, 5 * 60 * 1000);
-    console.log('Auto-refreshing data...');
-    discoverAndLoadData();
-}, 5 * 60 * 1000);
+loadDemoData();
