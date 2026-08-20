@@ -4,7 +4,8 @@
 let currentData = {
     monitor: null,
     ideas: null,
-    scripts: null
+    scripts: null,
+    demand: null
 };
 
 let selectedChannels = new Set();
@@ -112,6 +113,8 @@ function categorizeFile(filename, data) {
         currentData.ideas = data;
     } else if (filename.includes('scripts_index') || filename.includes('pipeline_report')) {
         currentData.scripts = data;
+    } else if (filename.includes('demand')) {
+        currentData.demand = data;
     }
 }
 
@@ -754,7 +757,7 @@ dropZone.addEventListener('drop', (e) => {
 async function loadDemoData(cacheBuster = '') {
     // Build candidate URL lists: "latest" alias first, then today's and
     // yesterday's dated files (the pipeline writes all three variants).
-    const kinds = ['monitor_report', 'ideas_report', 'scripts_index'];
+    const kinds = ['monitor_report', 'ideas_report', 'scripts_index', 'demand'];
     const dates = [0, 1].map(offset => {
         const d = new Date();
         d.setDate(d.getDate() - offset);

@@ -23,8 +23,13 @@ jobs:
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
 
+      - name: Check demand (Google Trends)
+        run: |
+          pip install pytrends --quiet
+          python scripts/demand.py
+
       - name: Commit updated reports
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "data: auto-report ${{ github.run_number }}"
-          file_pattern: "data/*.json dashboard/data/*.json"
+          file_pattern: "data/**/*.json dashboard/data/*.json"

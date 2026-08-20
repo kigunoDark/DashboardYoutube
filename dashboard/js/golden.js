@@ -60,6 +60,23 @@ function computeGoldenTopics(videos) {
         .sort((a, b) => b.multiplier - a.multiplier);
 }
 
+const TREND_BOOST = { rising: 1.5, new: 1.5, stable: 1.0, falling: 0.5, none: 1.0, unknown: 1.0 };
+const TREND_BADGES = {
+    rising:  { label: '↗ растёт',   cls: 'bg-green-500/20 text-green-400 border-green-500/40' },
+    new:     { label: '↗ новая',    cls: 'bg-green-500/20 text-green-400 border-green-500/40' },
+    stable:  { label: '→ стабильно', cls: 'bg-[#21262d] text-gray-400 border-[#30363d]' },
+    falling: { label: '↘ падает',   cls: 'bg-red-500/20 text-red-400 border-red-500/40' },
+    none:    { label: 'нет спроса', cls: 'bg-[#21262d] text-gray-500 border-[#30363d]' },
+    unknown: { label: '? спрос',    cls: 'bg-[#21262d] text-gray-500 border-[#30363d]' }
+};
+
+function getTrendMap() {
+    const map = new Map();
+    const topics = currentData.demand?.topics || [];
+    for (const t of topics) map.set(t.title, t.trend || 'unknown');
+    return map;
+}
+
 function renderGoldenTopics() {
     const section = document.getElementById('goldenSection');
     const container = document.getElementById('goldenList');
@@ -70,7 +87,17 @@ function renderGoldenTopics() {
         return;
     }
 
-    const topics = computeGoldenTopics(getAllVideos());
+    const trendMap = getTrendMap();
+    const topics = computeGoldenTopics(getAllVideos()).map(t => {
+        const trend = trendMap.get(t.title);
+        t.trend = trend || null;
+        // Финальный скоринг: multiplier × trendBoost (rising ×1.5, falling ×0.5)
+        t.score = t.multiplier * (trend ? (TREND_BOOST[trend] || 1.0) : 1.0);
+        return t;
+    });
+
+    // Когда есть данные о спросе — сортируем по итоговому score
+    if (trendMap.size > 0) topics.sort((a, b) => b.score - a.score);
     if (topics.length === 0) {
         section.classList.add('hidden');
         return;
@@ -91,8 +118,21 @@ function renderGoldenTopics() {
                 ? 'bg-gray-600/40 text-gray-400 border-gray-600'
                 : 'bg-[#21262d] text-gray-400 border-[#30363d]';
 
-        const actionBadge = t.actionable
-            ? '<span class="text-[10px] font-bold text-orange-400 uppercase tracking-wide shrink-0">🎬 Снимать</span>'
+        // Вердикт: score высокий + rising = снимать; + falling = пропустить;
+        // средний + rising = Shorts-разведка
+        let actionBadge = '';
+        if (t.trend === 'falling') {
+            actionBadge = '<span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide shrink-0">⏭ Пропустить</span>';
+        } else if (t.actionable && (t.trend === 'rising' || t.trend === 'new')) {
+            actionBadge = '<span class="text-[10px] font-bold text-orange-400 uppercase tracking-wide shrink-0">🎬 Снимать на этой неделе</span>';
+        } else if (t.trend === 'rising' || t.trend === 'new') {
+            actionBadge = '<span class="text-[10px] font-bold text-blue-400 uppercase tracking-wide shrink-0">📱 Shorts-разведка</span>';
+        } else if (t.actionable) {
+            actionBadge = '<span class="text-[10px] font-bold text-orange-400 uppercase tracking-wide shrink-0">🎬 Снимать</span>';
+        }
+
+        const trendBadge = t.trend
+            ? `<span class="px-2 py-0.5 rounded-full border text-[10px] shrink-0 ${TREND_BADGES[t.trend].cls}" title="Спрос в Google Trends (YouTube, 3 мес)">${TREND_BADGES[t.trend].label}</span>`
             : '';
 
         return `
@@ -107,6 +147,7 @@ function renderGoldenTopics() {
                     </div>
                 </div>
                 <span class="px-2 py-0.5 rounded-full border text-[10px] shrink-0 ${ageBadge}">${t.ageDays} дн.</span>
+                ${trendBadge}
                 ${actionBadge}
             </div>
         `;
