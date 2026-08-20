@@ -1,10 +1,9 @@
 {
-  "routes": [
-    { "src": "/", "dest": "/dashboard/index.html" },
-    { "src": "/index.html", "dest": "/dashboard/index.html" },
-    { "src": "/admin.html", "dest": "/dashboard/admin.html" },
-    { "src": "/dashboard/(.*)", "dest": "/dashboard/$1" }
+  "redirects": [
+    { "source": "/", "destination": "/dashboard/", "permanent": false },
+    { "source": "/index.html", "destination": "/dashboard/", "permanent": false },
+    { "source": "/admin.html", "destination": "/dashboard/admin.html", "permanent": false }
   ],
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": true
 }
