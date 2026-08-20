@@ -37,7 +37,8 @@ def load_config():
     global API_KEY, USE_API
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
-    API_KEY = config.get("youtube_api_key", "")
+    # Переменная окружения имеет приоритет — не храните ключ в git
+    API_KEY = os.environ.get("YOUTUBE_API_KEY") or config.get("youtube_api_key", "")
     USE_API = config.get("use_youtube_api", False) and bool(API_KEY)
     return config
 
@@ -63,7 +64,7 @@ def api_request(endpoint, params):
 def fetch_channel_info_api(channel_id: str):
     """Get channel info via YouTube API."""
     # Try channel ID directly first, then search by handle
-    if channel_id.startswith("@") or channel_id.startswith("UC") is False and len(channel_id) < 24:
+    if channel_id.startswith("@") or (not channel_id.startswith("UC") and len(channel_id) < 24):
         # Search for channel
         search_data = api_request("search", {
             "part": "snippet",
@@ -340,12 +341,12 @@ def run_monitoring():
     with open(raw_file, "w", encoding="utf-8") as f:
         json.dump(report['data'], f, ensure_ascii=False, indent=2)
 
-    # Also copy to dashboard data
+    # Also copy to dashboard data (dated + "latest" alias for the dashboard)
     dash_data_dir = BASE_DIR / "dashboard" / "data"
     dash_data_dir.mkdir(parents=True, exist_ok=True)
-    dash_report = dash_data_dir / f"monitor_report_{today}.json"
-    with open(dash_report, "w", encoding="utf-8") as f:
-        json.dump(report, f, ensure_ascii=False, indent=2)
+    for name in (f"monitor_report_{today}.json", "monitor_report_latest.json"):
+        with open(dash_data_dir / name, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
 
     print(f"\n{'='*60}")
     print(f"  REPORT SAVED")

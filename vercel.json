@@ -1,0 +1,10 @@
+{
+  "routes": [
+    { "src": "/", "dest": "/dashboard/index.html" },
+    { "src": "/index.html", "dest": "/dashboard/index.html" },
+    { "src": "/admin.html", "dest": "/dashboard/admin.html" },
+    { "src": "/dashboard/(.*)", "dest": "/dashboard/$1" }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
+}

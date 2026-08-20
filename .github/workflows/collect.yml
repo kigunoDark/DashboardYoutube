@@ -1,0 +1,30 @@
+name: collect
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"   # каждые 6 часов (со сдвигом от :00)
+  workflow_dispatch:          # ручной запуск из вкладки Actions
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Collect YouTube data
+        run: python scripts/collect.py
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+
+      - name: Commit updated reports
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "data: auto-report ${{ github.run_number }}"
+          file_pattern: "data/*.json dashboard/data/*.json"

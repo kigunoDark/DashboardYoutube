@@ -223,8 +223,8 @@ def generate_ideas(analysis):
         'format': 'Инфографика + storytelling',
         'estimated_difficulty': 'Средняя',
         'why_works': 'Высокий engagement rate у "денежных" тем',
-        'recommended_tags': ['salary', 'junior', 'developer', 'comparison'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['зарплата', 'it', 'junior'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['salary', 'junior', 'developer', 'comparison'] + top_tags[:3],
+        'recommended_hashtags': ['зарплата', 'it', 'junior'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -234,8 +234,8 @@ def generate_ideas(analysis):
         'format': 'Чек-лист + примеры',
         'estimated_difficulty': 'Низкая',
         'why_works': 'Ниша "резюме" слабо покрыта конкурентами',
-        'recommended_tags': ['resume', 'career', 'tips'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['резюме', 'карьера'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['resume', 'career', 'tips'] + top_tags[:3],
+        'recommended_hashtags': ['резюме', 'карьера'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -245,8 +245,8 @@ def generate_ideas(analysis):
         'format': 'Storytelling + уроки',
         'estimated_difficulty': 'Низкая',
         'why_works': 'Персональные истории с провалами цепляют сильнее',
-        'recommended_tags': ['interview', 'bigtech', 'experience'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['собеседование', 'bigtech'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['interview', 'bigtech', 'experience'] + top_tags[:3],
+        'recommended_hashtags': ['собеседование', 'bigtech'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -256,8 +256,8 @@ def generate_ideas(analysis):
         'format': 'Провокация + план действий',
         'estimated_difficulty': 'Средняя',
         'why_works': 'Тема AI в топе у всех конкурентов',
-        'recommended_tags': ['ai', 'programming', 'future'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['ai', 'программирование'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['ai', 'programming', 'future'] + top_tags[:3],
+        'recommended_hashtags': ['ai', 'программирование'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -267,8 +267,8 @@ def generate_ideas(analysis):
         'format': 'Аналитика + прогноз',
         'estimated_difficulty': 'Высокая',
         'why_works': 'Страх + конкретика = высокий CTR',
-        'recommended_tags': ['market', 'it', 'trends'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['рыноктруда', 'it'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['market', 'it', 'trends'] + top_tags[:3],
+        'recommended_hashtags': ['рыноктруда', 'it'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -278,8 +278,8 @@ def generate_ideas(analysis):
         'format': 'Провокация + инсайд',
         'estimated_difficulty': 'Низкая',
         'why_works': 'Реверсивный угол: не "как пройти", а "почему не берут"',
-        'recommended_tags': ['hiring', 'interview', 'reverse'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['найм', 'собеседование'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['hiring', 'interview', 'reverse'] + top_tags[:3],
+        'recommended_hashtags': ['найм', 'собеседование'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -289,8 +289,8 @@ def generate_ideas(analysis):
         'format': 'Сравнительный анализ',
         'estimated_difficulty': 'Средняя',
         'why_works': 'Твой уникальный опыт: 3 релокации + найм',
-        'recommended_tags': ['relocation', 'comparison', 'junior'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['релокация', 'сравнение'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['relocation', 'comparison', 'junior'] + top_tags[:3],
+        'recommended_hashtags': ['релокация', 'сравнение'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -300,8 +300,8 @@ def generate_ideas(analysis):
         'format': 'Short-form confession',
         'estimated_difficulty': 'Низкая',
         'why_works': 'Контринтуитивно: все хвалят IT, ты говоришь правду',
-        'recommended_tags': ['confession', 'career', 'truth'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['it', 'карьера', 'правда'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['confession', 'career', 'truth'] + top_tags[:3],
+        'recommended_hashtags': ['it', 'карьера', 'правда'] + top_hashtags[:2]
     })
 
     ideas.append({
@@ -311,8 +311,8 @@ def generate_ideas(analysis):
         'format': 'Реакция + разбор',
         'estimated_difficulty': 'Низкая',
         'why_works': 'Формат "смотрю ваши X" даёт высокую вовлечённость',
-        'recommended_tags': ['resume', 'review', 'reaction'] + top_tags[:3] if top_tags else [],
-        'recommended_hashtags': ['резюме', 'разбор'] + top_hashtags[:2] if top_hashtags else []
+        'recommended_tags': ['resume', 'review', 'reaction'] + top_tags[:3],
+        'recommended_hashtags': ['резюме', 'разбор'] + top_hashtags[:2]
     })
 
     return ideas
@@ -401,12 +401,12 @@ def run_analysis():
     with open(report_file, "w", encoding="utf-8") as f:
         json.dump(report_data, f, ensure_ascii=False, indent=2)
 
-    # Also save to dashboard data
+    # Also save to dashboard data (dated + "latest" alias for the dashboard)
     dash_data_dir = BASE_DIR / "dashboard" / "data"
     dash_data_dir.mkdir(parents=True, exist_ok=True)
-    dash_report = dash_data_dir / f"ideas_report_{today}.json"
-    with open(dash_report, "w", encoding="utf-8") as f:
-        json.dump(report_data, f, ensure_ascii=False, indent=2)
+    for name in (f"ideas_report_{today}.json", "ideas_report_latest.json"):
+        with open(dash_data_dir / name, "w", encoding="utf-8") as f:
+            json.dump(report_data, f, ensure_ascii=False, indent=2)
 
     print(f"{'='*60}")
     print(f"  ✅ ОТЧЁТ СОХРАНЁН: {report_file}")

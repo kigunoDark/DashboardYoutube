@@ -8,6 +8,7 @@ let currentData = {
 };
 
 let selectedChannels = new Set();
+let competitorsInitialized = false;
 let searchQuery = '';
 let competitorSearchQuery = '';
 let sortBy = 'views';
@@ -81,25 +82,24 @@ function getAdminCompetitors() {
 // ═══════════════════════════════════════════
 
 function handleFiles(event) {
-    const files = event.target.files || event.dataTransfer.files;
+    const files = Array.from(event.target.files || event.dataTransfer.files)
+        .filter(file => file.name.endsWith('.json'));
     if (!files.length) return;
 
     let loaded = 0;
     const total = files.length;
 
-    Array.from(files).forEach(file => {
-        if (!file.name.endsWith('.json')) return;
-
+    files.forEach(file => {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
                 categorizeFile(file.name, data);
-                loaded++;
-                if (loaded === total) renderDashboard();
             } catch (err) {
                 console.error('Error parsing', file.name, err);
             }
+            loaded++;
+            if (loaded === total) renderDashboard();
         };
         reader.readAsText(file);
     });
@@ -398,8 +398,10 @@ function renderCompetitors() {
         return;
     }
 
-    // Select all by default on first load
-    if (selectedChannels.size === 0) {
+    // Select all by default on first load only — after the user has
+    // interacted, never re-check channels they deliberately deselected.
+    if (!competitorsInitialized) {
+        competitorsInitialized = true;
         allCompetitors.forEach(c => selectedChannels.add(c.channel_id));
     }
 
@@ -547,7 +549,7 @@ function goToVideosPage(page) {
 }
 
 function renderPagination(container, current, total, totalItems) {
-    if (total <= VIDEOS_PER_PAGE) {
+    if (total <= 1) {
         container.innerHTML = '';
         return;
     }
@@ -748,29 +750,62 @@ dropZone.addEventListener('drop', (e) => {
 // AUTO-LOAD DEMO DATA
 // ═══════════════════════════════════════════
 
-async function loadDemoData() {
-    const files = [
-        { name: 'monitor_report_2026-08-20.json', url: 'data/monitor_report_2026-08-20.json' },
-        { name: 'ideas_report_2026-08-20.json', url: 'data/ideas_report_2026-08-20.json' },
-        { name: 'scripts_index_2026-08-20.json', url: 'data/scripts_index_2026-08-20.json' }
-    ];
+async function loadDemoData(cacheBuster = '') {
+    // Build candidate URL lists: "latest" alias first, then today's and
+    // yesterday's dated files (the pipeline writes all three variants).
+    const kinds = ['monitor_report', 'ideas_report', 'scripts_index'];
+    const dates = [0, 1].map(offset => {
+        const d = new Date();
+        d.setDate(d.getDate() - offset);
+        return d.toISOString().slice(0, 10);
+    });
 
     let loaded = 0;
-    for (const f of files) {
-        try {
-            const response = await fetch(f.url);
-            if (!response.ok) continue;
-            const data = await response.json();
-            categorizeFile(f.name, data);
-            loaded++;
-        } catch (e) {
-            console.log('Demo data not found:', f.url);
+    for (const kind of kinds) {
+        const candidates = [
+            `data/${kind}_latest.json`,
+            ...dates.map(d => `data/${kind}_${d}.json`)
+        ];
+        for (const url of candidates) {
+            try {
+                const response = await fetch(url + cacheBuster);
+                if (!response.ok) continue;
+                const data = await response.json();
+                categorizeFile(url, data);
+                loaded++;
+                break; // this kind is loaded, move to the next
+            } catch (e) {
+                console.log('Data not found:', url);
+            }
         }
     }
 
     if (loaded > 0) {
         renderDashboard();
+    } else {
+        showLoadError();
     }
 }
 
+function showLoadError() {
+    const emptyState = document.getElementById('emptyState');
+    if (!emptyState) return;
+    emptyState.querySelector('h2').textContent = 'Данные не найдены';
+    emptyState.querySelector('p').innerHTML =
+        'Запустите пайплайн (<code class="bg-[#161b22] px-2 py-1 rounded border border-[#30363d]">python run.py</code>) ' +
+        'или перетащите JSON-отчёты на страницу.<br>' +
+        'Если вы открыли файл напрямую (file://), запустите локальный сервер: ' +
+        '<code class="bg-[#161b22] px-2 py-1 rounded border border-[#30363d]">python -m http.server</code>';
+    const spinner = emptyState.querySelector('.fa-circle-notch');
+    if (spinner) spinner.classList.remove('fa-spin');
+}
+
+function forceReloadData() {
+    const buster = '?t=' + Date.now();
+    loadDemoData(buster);
+}
+
 loadDemoData();
+
+// Auto-refresh every 5 minutes (as stated in the empty state)
+setInterval(() => loadDemoData('?t=' + Date.now()), 5 * 60 * 1000);

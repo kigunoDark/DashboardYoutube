@@ -16,13 +16,18 @@ BUKA YOUTUBE SYSTEM — MAIN PIPELINE
 
 import sys
 import json
+import importlib
 from pathlib import Path
 from datetime import datetime
 
 BASE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BASE_DIR / "scripts"))
 
-from scripts import 01_monitor, 02_analyze, 03_scriptwriter
+# Имена модулей начинаются с цифры — обычный import невозможен (SyntaxError),
+# поэтому загружаем через importlib.
+monitor_agent = importlib.import_module("01_monitor")
+analyze_agent = importlib.import_module("02_analyze")
+scriptwriter_agent = importlib.import_module("03_scriptwriter")
 
 
 def main():
@@ -49,7 +54,7 @@ def main():
     print("─" * 70 + "\n")
     
     try:
-        monitor_report = 01_monitor.run_monitoring()
+        monitor_report = monitor_agent.run_monitoring()
         pipeline_report["steps"].append({
             "step": 1,
             "name": "monitoring",
@@ -76,7 +81,7 @@ def main():
     print("─" * 70 + "\n")
     
     try:
-        ideas_report = 02_analyze.run_analysis()
+        ideas_report = analyze_agent.run_analysis()
         pipeline_report["steps"].append({
             "step": 2,
             "name": "analytics",
@@ -101,7 +106,7 @@ def main():
     print("─" * 70 + "\n")
     
     try:
-        scripts_index = 03_scriptwriter.run_scriptwriter()
+        scripts_index = scriptwriter_agent.run_scriptwriter()
         pipeline_report["steps"].append({
             "step": 3,
             "name": "scriptwriter",

@@ -1,0 +1,439 @@
+{
+  "date": "2026-08-20",
+  "analysis": {
+    "total_videos": 100,
+    "avg_views": 29405,
+    "avg_likes": 974,
+    "avg_comments": 74,
+    "top_keywords": [
+      [
+        "https",
+        309
+      ],
+      [
+        "com",
+        181
+      ],
+      [
+        "developer",
+        171
+      ],
+      [
+        "coding",
+        162
+      ],
+      [
+        "programming",
+        100
+      ],
+      [
+        "айти",
+        80
+      ],
+      [
+        "software",
+        73
+      ],
+      [
+        "тестировщик",
+        67
+      ],
+      [
+        "learning",
+        63
+      ],
+      [
+        "www",
+        62
+      ],
+      [
+        "roadmap",
+        61
+      ],
+      [
+        "code",
+        55
+      ],
+      [
+        "development",
+        53
+      ],
+      [
+        "shorts",
+        52
+      ],
+      [
+        "web",
+        51
+      ],
+      [
+        "developete",
+        50
+      ],
+      [
+        "тестировщика",
+        50
+      ],
+      [
+        "projects",
+        47
+      ],
+      [
+        "scrimba",
+        47
+      ],
+      [
+        "via",
+        43
+      ]
+    ],
+    "top_tags": [
+      [
+        "coding",
+        9
+      ],
+      [
+        "learn to code",
+        7
+      ],
+      [
+        "programming",
+        7
+      ],
+      [
+        "coding tips",
+        7
+      ],
+      [
+        "web development",
+        7
+      ],
+      [
+        "айтишник",
+        6
+      ],
+      [
+        "программирование",
+        6
+      ],
+      [
+        "it",
+        6
+      ],
+      [
+        "software engineering",
+        6
+      ],
+      [
+        "software developer",
+        6
+      ],
+      [
+        "карьера в it",
+        6
+      ],
+      [
+        "it сфера",
+        6
+      ],
+      [
+        "войти в айти",
+        6
+      ],
+      [
+        "programming for beginners",
+        5
+      ],
+      [
+        "coding for beginners",
+        5
+      ]
+    ],
+    "top_hashtags": [
+      [
+        "coding",
+        12
+      ],
+      [
+        "айти",
+        11
+      ],
+      [
+        "softwareengineer",
+        10
+      ],
+      [
+        "shorts",
+        10
+      ],
+      [
+        "softwaredeveloper",
+        9
+      ],
+      [
+        "developer",
+        7
+      ],
+      [
+        "learntocode",
+        7
+      ],
+      [
+        "aitools",
+        6
+      ],
+      [
+        "программирование",
+        6
+      ],
+      [
+        "programming",
+        5
+      ],
+      [
+        "programmingmemes",
+        5
+      ],
+      [
+        "тестировщик",
+        5
+      ],
+      [
+        "tokens",
+        4
+      ],
+      [
+        "webdevelopment",
+        4
+      ],
+      [
+        "aicoding",
+        4
+      ]
+    ]
+  },
+  "ideas": [
+    {
+      "id": 1,
+      "category": "🔥 Тренд (высокие просмотры)",
+      "idea": "Почему видео про \"https\" набирают сотни тысяч просмотров — разбор от Staff-инженера",
+      "format": "Аналитика + личное мнение",
+      "estimated_difficulty": "Средняя",
+      "why_works": "Повторяет паттерн топовых видео конкурентов",
+      "recommended_tags": [
+        "coding",
+        "learn to code",
+        "programming",
+        "coding tips",
+        "web development"
+      ],
+      "recommended_hashtags": [
+        "coding",
+        "айти",
+        "softwareengineer"
+      ]
+    },
+    {
+      "id": 2,
+      "category": "🔥 Тренд (высокая вовлечённость)",
+      "idea": "Сколько реально зарабатывает junior-разработчик в 2026: цифры из 5 стран",
+      "format": "Инфографика + storytelling",
+      "estimated_difficulty": "Средняя",
+      "why_works": "Высокий engagement rate у \"денежных\" тем",
+      "recommended_tags": [
+        "salary",
+        "junior",
+        "developer",
+        "comparison",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "зарплата",
+        "it",
+        "junior",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 3,
+      "category": "🎯 Пробел рынка",
+      "idea": "3 ошибки в резюме, которые я вижу каждую неделю как Staff-инженер (и как их исправить)",
+      "format": "Чек-лист + примеры",
+      "estimated_difficulty": "Низкая",
+      "why_works": "Ниша \"резюме\" слабо покрыта конкурентами",
+      "recommended_tags": [
+        "resume",
+        "career",
+        "tips",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "резюме",
+        "карьера",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 4,
+      "category": "🎯 Пробел рынка",
+      "idea": "Как я прошёл 3 собеседования в Big Tech и провалил 1 — честный разбор",
+      "format": "Storytelling + уроки",
+      "estimated_difficulty": "Низкая",
+      "why_works": "Персональные истории с провалами цепляют сильнее",
+      "recommended_tags": [
+        "interview",
+        "bigtech",
+        "experience",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "собеседование",
+        "bigtech",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 5,
+      "category": "⚡ Горячая тема",
+      "idea": "AI агенты заменят программистов через 2 года? Что делать, если ты https",
+      "format": "Провокация + план действий",
+      "estimated_difficulty": "Средняя",
+      "why_works": "Тема AI в топе у всех конкурентов",
+      "recommended_tags": [
+        "ai",
+        "programming",
+        "future",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "ai",
+        "программирование",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 6,
+      "category": "⚡ Горячая тема",
+      "idea": "Рынок IT 2026: кого сокращают первым и кого берут взамен",
+      "format": "Аналитика + прогноз",
+      "estimated_difficulty": "Высокая",
+      "why_works": "Страх + конкретика = высокий CTR",
+      "recommended_tags": [
+        "market",
+        "it",
+        "trends",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "рыноктруда",
+        "it",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 7,
+      "category": "💡 Неожиданный угол",
+      "idea": "Почему я отказываю кандидатам с крутыми резюме — 5 реальных причин",
+      "format": "Провокация + инсайд",
+      "estimated_difficulty": "Низкая",
+      "why_works": "Реверсивный угол: не \"как пройти\", а \"почему не берут\"",
+      "recommended_tags": [
+        "hiring",
+        "interview",
+        "reverse",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "найм",
+        "собеседование",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 8,
+      "category": "💡 Неожиданный угол",
+      "idea": "Сравнение: junior в России vs junior в Португалии vs junior в США — где лучше стартовать",
+      "format": "Сравнительный анализ",
+      "estimated_difficulty": "Средняя",
+      "why_works": "Твой уникальный опыт: 3 релокации + найм",
+      "recommended_tags": [
+        "relocation",
+        "comparison",
+        "junior",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "релокация",
+        "сравнение",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 9,
+      "category": "📊 Формат, который цепляет",
+      "idea": "10 минут правды: почему я жалею, что пошёл в IT (и 3 вещи, которые я бы сделал иначе)",
+      "format": "Short-form confession",
+      "estimated_difficulty": "Низкая",
+      "why_works": "Контринтуитивно: все хвалят IT, ты говоришь правду",
+      "recommended_tags": [
+        "confession",
+        "career",
+        "truth",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "it",
+        "карьера",
+        "правда",
+        "coding",
+        "айти"
+      ]
+    },
+    {
+      "id": 10,
+      "category": "📊 Формат, который цепляет",
+      "idea": "Staff-инженер смотрит резюме подписчиков: разбор с комментариями",
+      "format": "Реакция + разбор",
+      "estimated_difficulty": "Низкая",
+      "why_works": "Формат \"смотрю ваши X\" даёт высокую вовлечённость",
+      "recommended_tags": [
+        "resume",
+        "review",
+        "reaction",
+        "coding",
+        "learn to code",
+        "programming"
+      ],
+      "recommended_hashtags": [
+        "резюме",
+        "разбор",
+        "coding",
+        "айти"
+      ]
+    }
+  ],
+  "source_report": "monitor_report_2026-08-20.json"
+}

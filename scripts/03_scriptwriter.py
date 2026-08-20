@@ -229,8 +229,9 @@ def run_scriptwriter():
         print(f"  ✅ Template saved: {template_file.name}\n")
     
     # Save index
+    today = datetime.now().strftime('%Y-%m-%d')
     index = {
-        'date': datetime.now().strftime('%Y-%m-%d'),
+        'date': today,
         'generated_scripts': generated_scripts,
         'instructions': {
             'step_1': 'Open the prompt file and copy the text',
@@ -240,9 +241,16 @@ def run_scriptwriter():
         }
     }
     
-    index_file = SCRIPTS_DIR / f"scripts_index_{datetime.now().strftime('%Y-%m-%d')}.json"
+    index_file = SCRIPTS_DIR / f"scripts_index_{today}.json"
     with open(index_file, "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
+
+    # Also save to dashboard data (dated + "latest" alias for the dashboard)
+    dash_data_dir = BASE_DIR / "dashboard" / "data"
+    dash_data_dir.mkdir(parents=True, exist_ok=True)
+    for name in (f"scripts_index_{today}.json", "scripts_index_latest.json"):
+        with open(dash_data_dir / name, "w", encoding="utf-8") as f:
+            json.dump(index, f, ensure_ascii=False, indent=2)
     
     print(f"{'='*60}")
     print(f"  ✅ ALL SCRIPTS GENERATED")
