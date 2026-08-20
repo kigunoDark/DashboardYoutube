@@ -1,0 +1,80 @@
+/* BUKA Dashboard Styles */
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #1f2937;
+}
+::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+/* Drag & Drop Zone */
+.drop-zone {
+    border: 2px dashed #4b5563;
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+.drop-zone.dragover {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.1);
+}
+
+/* Keyword Tags */
+.keyword-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    background: linear-gradient(135deg, #1f2937, #374151);
+    border: 1px solid #4b5563;
+    transition: all 0.2s;
+}
+.keyword-tag:hover {
+    transform: translateY(-1px);
+    border-color: #f97316;
+}
+
+/* Table Row Hover */
+#competitorsTable tbody tr {
+    transition: background 0.2s;
+}
+#competitorsTable tbody tr:hover {
+    background: rgba(249, 115, 22, 0.05);
+}
+
+/* Idea Cards */
+.idea-card {
+    border-left: 4px solid #f97316;
+    transition: all 0.3s;
+}
+.idea-card:hover {
+    transform: translateX(4px);
+    border-left-width: 6px;
+}
+
+/* Chart Container */
+canvas {
+    max-height: 300px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+}

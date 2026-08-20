@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUKA YouTube System — Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-play text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl">BUKA YouTube System</h1>
+                    <p class="text-gray-400 text-sm">Dashboard</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="lastUpdate" class="text-gray-400 text-sm">Нет данных</span>
+                <a href="admin.html" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition">
+                    <i class="fas fa-cog mr-2"></i>Админ панель
+                </a>
+                <button onclick="document.getElementById('fileInput').click()" 
+                        class="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-lg font-medium transition">
+                    <i class="fas fa-upload mr-2"></i>Загрузить отчёты
+                </button>
+                <input type="file" id="fileInput" multiple accept=".json" class="hidden" onchange="handleFiles(event)">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-20">
+            <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-chart-line text-4xl text-gray-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Загрузите отчёты системы</h2>
+            <p class="text-gray-400 mb-6">Перетащите JSON-файлы из папки <code class="bg-gray-800 px-2 py-1 rounded">youtube_system/data/reports/</code></p>
+            <div class="flex justify-center gap-3 text-sm text-gray-500">
+                <span class="bg-gray-800 px-3 py-1 rounded">monitor_report_*.json</span>
+                <span class="bg-gray-800 px-3 py-1 rounded">ideas_report_*.json</span>
+                <span class="bg-gray-800 px-3 py-1 rounded">scripts_index_*.json</span>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboard" class="hidden">
+            <!-- Competitors Selector Table -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 mb-6">
+                <div class="p-4 border-b border-gray-700 flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="w-5 h-5 rounded border-gray-600 text-orange-500 focus:ring-orange-500">
+                        <label for="selectAllCheckbox" class="font-bold cursor-pointer">Выбрать все</label>
+                        <span id="selectedCount" class="text-sm text-gray-400">(0 выбрано)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-search text-gray-500"></i>
+                        <input type="text" id="searchCompetitors" placeholder="Поиск по каналам..." 
+                               oninput="searchCompetitors(this.value)"
+                               class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 w-64">
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm" id="competitorsSelectorTable">
+                        <thead class="bg-gray-700/50 text-gray-400 text-xs uppercase">
+                            <tr>
+                                <th class="p-3 w-10"></th>
+                                <th class="text-left p-3">Канал</th>
+                                <th class="text-left p-3">Подписчики</th>
+                                <th class="text-left p-3">Последнее видео</th>
+                                <th class="text-left p-3">Ссылка</th>
+                            </tr>
+                        </thead>
+                        <tbody id="competitorsSelectorBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-sm">Каналов выбрано</span>
+                        <i class="fas fa-users text-blue-400"></i>
+                    </div>
+                    <div id="statChannels" class="text-3xl font-bold">0</div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-sm">Видео проанализировано</span>
+                        <i class="fas fa-video text-green-400"></i>
+                    </div>
+                    <div id="statVideos" class="text-3xl font-bold">0</div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-sm">Идей сгенерировано</span>
+                        <i class="fas fa-lightbulb text-yellow-400"></i>
+                    </div>
+                    <div id="statIdeas" class="text-3xl font-bold">0</div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-sm">Средние просмотры</span>
+                        <i class="fas fa-eye text-orange-400"></i>
+                    </div>
+                    <div id="statAvgViews" class="text-3xl font-bold">0</div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <h3 class="font-bold mb-4">Топ видео по просмотрам</h3>
+                    <canvas id="viewsChart"></canvas>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <h3 class="font-bold mb-4">Ключевые слова конкурентов</h3>
+                    <div id="keywordsCloud" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <!-- Videos Table -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 mb-6 overflow-hidden">
+                <div class="p-5 border-b border-gray-700 flex items-center justify-between">
+                    <h3 class="font-bold"><i class="fas fa-table mr-2"></i>Видео выбранных конкурентов</h3>
+                    <button onclick="exportTable()" class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">
+                        <i class="fas fa-download mr-1"></i>CSV
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm" id="videosTable">
+                        <thead class="bg-gray-700 text-gray-300">
+                            <tr>
+                                <th class="text-left p-3">Канал</th>
+                                <th class="text-left p-3">Видео</th>
+                                <th class="text-right p-3">Просмотры</th>
+                                <th class="text-right p-3">Лайки</th>
+                                <th class="text-right p-3">ER</th>
+                                <th class="text-left p-3">Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody id="videosTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Ideas Section -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700 mb-6">
+                <div class="p-5 border-b border-gray-700">
+                    <h3 class="font-bold"><i class="fas fa-lightbulb mr-2 text-yellow-400"></i>Идеи для видео</h3>
+                </div>
+                <div id="ideasList" class="p-5 space-y-4"></div>
+            </div>
+
+            <!-- Scripts Section -->
+            <div class="bg-gray-800 rounded-xl border border-gray-700">
+                <div class="p-5 border-b border-gray-700">
+                    <h3 class="font-bold"><i class="fas fa-file-alt mr-2 text-blue-400"></i>Сценарии</h3>
+                </div>
+                <div id="scriptsList" class="p-5 space-y-3"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

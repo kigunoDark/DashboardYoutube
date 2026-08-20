@@ -1,0 +1,29 @@
+{
+  "date": "2026-08-20",
+  "generated_scripts": [
+    {
+      "idea_id": 3,
+      "idea": "3 ошибки в резюме, которые я вижу каждую неделю как Staff-инженер (и как их исправить)",
+      "prompt_file": "C:\\Users\\Buka\\Documents\\kimi\\workspace\\youtube_system\\data\\reports\\script_prompt_3_ошибки_в_резюме,_которые_я_в.txt",
+      "template_file": "C:\\Users\\Buka\\Documents\\kimi\\workspace\\youtube_system\\data\\reports\\script_template_3_ошибки_в_резюме,_которые_я_в.md"
+    },
+    {
+      "idea_id": 4,
+      "idea": "Как я прошёл 3 собеседования в Big Tech и провалил 1 — честный разбор",
+      "prompt_file": "C:\\Users\\Buka\\Documents\\kimi\\workspace\\youtube_system\\data\\reports\\script_prompt_Как_я_прошёл_3_собеседования_в.txt",
+      "template_file": "C:\\Users\\Buka\\Documents\\kimi\\workspace\\youtube_system\\data\\reports\\script_template_Как_я_прошёл_3_собеседования_в.md"
+    },
+    {
+      "idea_id": 7,
+      "idea": "Почему я отказываю кандидатам с крутыми резюме — 5 реальных причин",
+      "prompt_file": "C:\\Users\\Buka\\Documents\\kimi\\workspace\\youtube_system\\data\\reports\\script_prompt_Почему_я_отказываю_кандидатам_.txt",
+      "template_file": "C:\\Users\\Buka\\Documents\\kimi\\workspace\\youtube_system\\data\\reports\\script_template_Почему_я_отказываю_кандидатам_.md"
+    }
+  ],
+  "instructions": {
+    "step_1": "Open the prompt file and copy the text",
+    "step_2": "Paste into Kimi / ChatGPT / Claude",
+    "step_3": "Get full script and fill the template",
+    "step_4": "Use the template for filming guidance"
+  }
+}
