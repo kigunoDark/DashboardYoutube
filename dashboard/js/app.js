@@ -673,6 +673,7 @@ function renderDashboard() {
     renderVideos();
     renderKeywords();
     renderIdeas();
+    renderGoldenTopics();
     // Delay chart rendering so canvas has proper dimensions after unhiding
     setTimeout(() => renderCharts(), 150);
 }

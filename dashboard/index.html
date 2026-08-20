@@ -86,6 +86,17 @@
 
     <!-- Main Content -->
     <main class="max-w-[1600px] mx-auto px-4 py-4">
+        <!-- Golden Topics Section (full width, above the grid) -->
+        <div id="goldenSection" class="hidden mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-sm text-gray-400 uppercase tracking-wide">🔥 Golden Topics — темы-аутлаеры (≥3× от медианы канала)</h2>
+                <span id="goldenCount" class="text-xs text-gray-500"></span>
+            </div>
+            <div id="goldenList" class="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                <!-- Dynamic golden topics -->
+            </div>
+        </div>
+
         <!-- Empty State -->
         <div id="emptyState" class="text-center py-20">
             <div class="w-20 h-20 bg-[#161b22] rounded-full flex items-center justify-center mx-auto mb-4 border border-[#30363d]">
@@ -194,6 +205,7 @@
         </div>
     </main>
 
+    <script src="js/golden.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
