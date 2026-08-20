@@ -1,5 +1,5 @@
 // BUKA YouTube System Dashboard v2
-// Competitor selector + filtered analytics + pagination
+// Competitor selector + filtered analytics + pagination + real data
 
 let currentData = {
     monitor: null,
@@ -94,14 +94,15 @@ function buildCompetitorsList() {
 
         const monitored = monitorMap.get(id);
         const firstVideo = monitored?.videos?.[0];
-        const enrichedName = firstVideo?.channel || monitored?.channel_id || admin.name || id;
+        const enrichedName = monitored?.channel_title || firstVideo?.channel || admin.name || id;
         const lastVideo = monitored?.videos?.[0];
+        const subs = monitored?.subscriber_count;
 
         result.push({
             channel_id: id,
             name: enrichedName,
             url: admin.url || `https://www.youtube.com/channel/${id}`,
-            subscribers: '—',
+            subscribers: subs ? formatNumber(subs) : '—',
             lastVideoTitle: lastVideo?.title || '—',
             lastVideoUrl: lastVideo?.url || '#',
             avatarInitial: (enrichedName || '?').charAt(0).toUpperCase(),
@@ -115,14 +116,15 @@ function buildCompetitorsList() {
         seen.add(ch.channel_id);
 
         const firstVideo = ch.videos?.[0];
-        const channelName = firstVideo?.channel || ch.channel_id;
+        const channelName = ch.channel_title || firstVideo?.channel || ch.channel_id;
         const lastVideo = ch.videos?.[0];
+        const subs = ch.subscriber_count;
 
         result.push({
             channel_id: ch.channel_id,
             name: channelName,
             url: `https://www.youtube.com/channel/${ch.channel_id}`,
-            subscribers: '—',
+            subscribers: subs ? formatNumber(subs) : '—',
             lastVideoTitle: lastVideo?.title || '—',
             lastVideoUrl: lastVideo?.url || '#',
             avatarInitial: (channelName || '?').charAt(0).toUpperCase(),
@@ -154,7 +156,6 @@ function renderCompetitorsSelector() {
         filtered = allCompetitorsList.filter(c => c.name.toLowerCase().includes(q));
     }
 
-    // Update select-all checkbox state
     const allSelected = allCompetitorsList.length > 0 && allCompetitorsList.every(c => selectedChannels.has(c.channel_id));
     document.getElementById('selectAllCheckbox').checked = allSelected;
     document.getElementById('selectedCount').textContent = `(${selectedChannels.size} выбрано)`;
@@ -165,7 +166,6 @@ function renderCompetitorsSelector() {
         return;
     }
 
-    // Pagination
     const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
     if (compCurrentPage > totalPages) compCurrentPage = totalPages;
     const start = (compCurrentPage - 1) * ITEMS_PER_PAGE;
@@ -409,7 +409,6 @@ function renderVideosTable() {
 
     allVideosCache.sort((a, b) => b.views - a.views);
 
-    // Pagination
     const totalPages = Math.ceil(allVideosCache.length / ITEMS_PER_PAGE) || 1;
     if (videosCurrentPage > totalPages) videosCurrentPage = totalPages;
     const start = (videosCurrentPage - 1) * ITEMS_PER_PAGE;
@@ -498,7 +497,7 @@ function renderCharts() {
 }
 
 // ═══════════════════════════════════════════
-// KEYWORDS
+// KEYWORDS (VidIQ style)
 // ═══════════════════════════════════════════
 
 function renderKeywords() {
@@ -507,17 +506,63 @@ function renderKeywords() {
 
     if (!currentData.ideas || !currentData.ideas.analysis) return;
 
-    const keywords = currentData.ideas.analysis.top_keywords || [];
-    keywords.forEach(([word, count]) => {
-        const tag = document.createElement('span');
-        tag.className = 'keyword-tag';
-        tag.textContent = `${word} (${count})`;
-        container.appendChild(tag);
-    });
+    const analysis = currentData.ideas.analysis;
+
+    // SEO Keywords with scores
+    const keywords = analysis.top_keywords || [];
+    if (keywords.length > 0) {
+        const kwTitle = document.createElement('div');
+        kwTitle.className = 'w-full text-xs font-bold text-gray-400 uppercase mb-2';
+        kwTitle.textContent = '🔑 SEO Ключевые слова (взвешенный скор)';
+        container.appendChild(kwTitle);
+
+        keywords.forEach(([word, score]) => {
+            const tag = document.createElement('span');
+            const intensity = Math.min(score / 10, 1);
+            const bgOpacity = 0.2 + intensity * 0.6;
+            tag.className = 'keyword-tag';
+            tag.style.backgroundColor = `rgba(249, 115, 22, ${bgOpacity})`;
+            tag.style.border = '1px solid rgba(249, 115, 22, 0.5)';
+            tag.textContent = `${word} (${score})`;
+            container.appendChild(tag);
+        });
+    }
+
+    // Hashtags
+    const hashtags = analysis.top_hashtags || [];
+    if (hashtags.length > 0) {
+        const htTitle = document.createElement('div');
+        htTitle.className = 'w-full text-xs font-bold text-gray-400 uppercase mb-2 mt-3';
+        htTitle.textContent = '#️⃣ Хештеги конкурентов';
+        container.appendChild(htTitle);
+
+        hashtags.forEach(([tag, count]) => {
+            const el = document.createElement('span');
+            el.className = 'keyword-tag bg-blue-500/20 text-blue-400 border border-blue-500/30';
+            el.textContent = `#${tag} (${count})`;
+            container.appendChild(el);
+        });
+    }
+
+    // Tags
+    const tags = analysis.top_tags || [];
+    if (tags.length > 0) {
+        const tTitle = document.createElement('div');
+        tTitle.className = 'w-full text-xs font-bold text-gray-400 uppercase mb-2 mt-3';
+        tTitle.textContent = '🏷️ Теги конкурентов';
+        container.appendChild(tTitle);
+
+        tags.forEach(([tag, count]) => {
+            const el = document.createElement('span');
+            el.className = 'keyword-tag bg-green-500/20 text-green-400 border border-green-500/30';
+            el.textContent = `${tag} (${count})`;
+            container.appendChild(el);
+        });
+    }
 }
 
 // ═══════════════════════════════════════════
-// IDEAS
+// IDEAS (with tags & hashtags)
 // ═══════════════════════════════════════════
 
 function renderIdeas() {
@@ -537,6 +582,17 @@ function renderIdeas() {
     currentData.ideas.ideas.forEach(idea => {
         const card = document.createElement('div');
         card.className = `idea-card bg-gray-700 rounded-lg p-4 ${categoryColors[idea.category?.split(' ')[0]] || 'border-orange-500'}`;
+
+        let tagsHtml = '';
+        if (idea.recommended_tags && idea.recommended_tags.length > 0) {
+            tagsHtml = `<div class="flex flex-wrap gap-1 mt-2">${idea.recommended_tags.slice(0, 5).map(t => `<span class="text-[10px] bg-gray-600 px-1.5 py-0.5 rounded text-gray-300">${t}</span>`).join('')}</div>`;
+        }
+
+        let hashtagsHtml = '';
+        if (idea.recommended_hashtags && idea.recommended_hashtags.length > 0) {
+            hashtagsHtml = `<div class="flex flex-wrap gap-1 mt-1">${idea.recommended_hashtags.slice(0, 3).map(h => `<span class="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">#${h}</span>`).join('')}</div>`;
+        }
+
         card.innerHTML = `
             <div class="flex items-start justify-between mb-2">
                 <span class="text-xs font-bold text-orange-400 uppercase tracking-wide">${idea.category}</span>
@@ -545,6 +601,8 @@ function renderIdeas() {
             <h4 class="font-bold text-lg mb-2">${idea.idea}</h4>
             <p class="text-gray-400 text-sm mb-2"><i class="fas fa-film mr-1"></i> ${idea.format}</p>
             <p class="text-gray-500 text-sm italic">${idea.why_works}</p>
+            ${tagsHtml}
+            ${hashtagsHtml}
         `;
         container.appendChild(card);
     });
