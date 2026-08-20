@@ -1,8 +1,0 @@
-{
-  "routes": [
-    { "src": "/", "dest": "/dashboard/index.html" },
-    { "src": "/dashboard/(.*)", "dest": "/dashboard/$1" }
-  ],
-  "cleanUrls": true,
-  "trailingSlash": false
-}
