@@ -901,7 +901,25 @@ async function discoverAndLoadData() {
     }
 }
 
-function forceReloadData() {
+async function forceReloadData() {
+    // Clear current data
+    currentData = { monitor: null, ideas: null, scripts: null };
+    selectedChannels.clear();
+    searchQuery = '';
+    competitorSearchQuery = '';
+    videosCurrentPage = 1;
+    if (viewsChartInstance) { viewsChartInstance.destroy(); viewsChartInstance = null; }
+    if (timelineChartInstance) { timelineChartInstance.destroy(); timelineChartInstance = null; }
+
+    // Show empty state while loading
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('emptyState').classList.remove('hidden');
+
+    await discoverAndLoadData();
+}
+
+// Initial load
+discoverAndLoadData().catch(e => console.error('Initial load failed:', e));
     // Clear current data
     currentData = { monitor: null, ideas: null, scripts: null };
     selectedChannels.clear();
@@ -923,6 +941,9 @@ discoverAndLoadData();
 
 // Auto-refresh every 5 minutes
 setInterval(() => {
+    console.log('Auto-refreshing data...');
+    discoverAndLoadData().catch(e => console.error('Auto-refresh failed:', e));
+}, 5 * 60 * 1000);
     console.log('Auto-refreshing data...');
     discoverAndLoadData();
 }, 5 * 60 * 1000);
