@@ -269,10 +269,17 @@ function renderViewsChart() {
     if (!ctx) return;
 
     const monitorData = currentData.monitor?.data || [];
-    const sorted = [...monitorData].sort((a, b) => (b.total_views || 0) - (a.total_views || 0)).slice(0, 8);
+    
+    // Calculate total_views from videos array since channel object doesn't have total_views field
+    const channelsWithViews = monitorData.map(ch => ({
+        ...ch,
+        total_views: (ch.videos || []).reduce((sum, v) => sum + (v.view_count || 0), 0)
+    }));
+    
+    const sorted = [...channelsWithViews].sort((a, b) => b.total_views - a.total_views).slice(0, 8);
 
     const labels = sorted.map(ch => ch.channel_title || ch.channel_id);
-    const data = sorted.map(ch => ch.total_views || 0);
+    const data = sorted.map(ch => ch.total_views);
 
     // Show placeholder if no data
     if (labels.length === 0 || data.every(v => v === 0)) {
@@ -295,11 +302,6 @@ function renderViewsChart() {
     const parent = ctx.parentElement;
     const placeholder = parent.querySelector('.chart-placeholder');
     if (placeholder) placeholder.style.display = 'none';
-
-    if (viewsChartInstance) {
-        viewsChartInstance.destroy();
-    }
-    const data = sorted.map(ch => ch.total_views || 0);
 
     if (viewsChartInstance) {
         viewsChartInstance.destroy();
@@ -367,7 +369,6 @@ function renderTimelineChart() {
     const placeholder = parent.querySelector('.chart-placeholder');
     if (placeholder) placeholder.style.display = 'none';
 
-    const dateMap = new Map();
     const dateMap = new Map();
 
     videos.forEach(v => {
