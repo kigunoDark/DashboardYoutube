@@ -1,0 +1,7 @@
+{
+  "redirects": [
+    { "source": "/index.html", "destination": "/", "permanent": false },
+    { "source": "/admin.html", "destination": "/admin", "permanent": false },
+    { "source": "/feedback.html", "destination": "/feedback", "permanent": false }
+  ]
+}
