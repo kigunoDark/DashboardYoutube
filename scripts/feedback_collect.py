@@ -70,8 +70,17 @@ def collect():
     details = request_json("https://www.googleapis.com/youtube/v3/videos?" + urllib.parse.urlencode({"part": "snippet,statistics", "id": ",".join(ids)}), token).get("items", []) if ids else []
     today = datetime.now(timezone.utc).date()
     date = lambda days: str(today - timedelta(days=days))
-    metrics = "views,likes,comments,impressions,impressionsClickThroughRate,averageViewPercentage,subscribersGained"
-    daily = {days: analytics(token, date(days), str(today), metrics) for days in (1, 7, 30)}
+    basic_metrics = "views,likes,comments,averageViewPercentage,subscribersGained"
+    reach_metrics = "videoThumbnailImpressions,videoThumbnailImpressionsClickRate"
+    daily = {}
+    for days in (1, 7, 30):
+        basic = analytics(token, date(days), str(today), basic_metrics)
+        try:
+            reach = analytics(token, date(days), str(today), reach_metrics)
+        except Exception as error:
+            print(f"Reach metrics unavailable for {days}d: {error}")
+            reach = {}
+        daily[days] = {video_id: {**values, **reach.get(video_id, {})} for video_id, values in basic.items()}
     try:
         revenue = analytics(token, date(30), str(today), "estimatedRevenue")
     except Exception:
@@ -84,7 +93,7 @@ def collect():
             "id": video_id, "title": item["snippet"]["title"], "url": f"https://www.youtube.com/watch?v={video_id}",
             "publishedAt": item["snippet"]["publishedAt"][:10], "thumbnailUrl": item["snippet"].get("thumbnails", {}).get("medium", {}).get("url"),
             "views24h": int(daily[1].get(video_id, {}).get("views", 0)), "views7d": int(daily[7].get(video_id, {}).get("views", 0)), "views30d": int(metric30.get("views", 0)),
-            "impressions": int(metric30.get("impressions", 0)), "ctr": float(metric30.get("impressionsClickThroughRate", 0)), "averageViewedPercent": float(metric30.get("averageViewPercentage", 0)),
+            "impressions": int(metric30.get("videoThumbnailImpressions", 0)), "ctr": float(metric30.get("videoThumbnailImpressionsClickRate", 0)), "averageViewedPercent": float(metric30.get("averageViewPercentage", 0)),
             "likes": int(item.get("statistics", {}).get("likeCount", 0)), "comments": int(item.get("statistics", {}).get("commentCount", 0)),
             "subscribersGained": int(metric30.get("subscribersGained", 0)), "estimatedRevenue": float(revenue.get(video_id, {}).get("estimatedRevenue", 0)),
         })
