@@ -2,7 +2,8 @@
   "redirects": [
     { "source": "/", "destination": "/dashboard/", "permanent": false },
     { "source": "/index.html", "destination": "/dashboard/", "permanent": false },
-    { "source": "/admin.html", "destination": "/dashboard/admin.html", "permanent": false }
+    { "source": "/admin.html", "destination": "/dashboard/admin.html", "permanent": false },
+    { "source": "/feedback.html", "destination": "/dashboard/feedback.html", "permanent": false }
   ],
   "cleanUrls": true,
   "trailingSlash": true
