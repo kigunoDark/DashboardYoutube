@@ -71,7 +71,10 @@ document.addEventListener('click', (e) => {
 function getAdminCompetitors() {
     try {
         const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+        }
     } catch (e) {
         console.error('Error reading admin competitors:', e);
     }
