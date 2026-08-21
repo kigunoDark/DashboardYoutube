@@ -81,14 +81,16 @@ function saveVideos() {
 
 function normalizeVideo(video) {
     if (!video || typeof video !== 'object') return null;
-    const expectedMultiplier = Number(video.expectedMultiplier);
-    const baselineViews = Number(video.baselineViews);
+    const expectedRaw = Number(video.expectedMultiplier);
+    const baselineRaw = Number(video.baselineViews);
+    const expectedMultiplier = Number.isFinite(expectedRaw) && expectedRaw > 0 ? expectedRaw : null;
+    const baselineViews = Number.isFinite(baselineRaw) && baselineRaw > 0 ? baselineRaw : null;
     const title = String(video.title || '').trim();
     const url = String(video.url || '').trim();
     const topic = String(video.topic || '').trim();
     const publishedAt = String(video.publishedAt || '');
 
-    if (!title || !topic || !publishedAt || !isSafeUrl(url) || expectedMultiplier <= 0 || baselineViews <= 0) {
+    if (!title || !publishedAt || !isSafeUrl(url)) {
         return null;
     }
 
@@ -113,6 +115,10 @@ function normalizeVideo(video) {
         impressions: numberOrNull(video.impressions),
         ctr: numberOrNull(video.ctr),
         averageViewedPercent: numberOrNull(video.averageViewedPercent),
+        likes: numberOrNull(video.likes),
+        comments: numberOrNull(video.comments),
+        subscribersGained: numberOrNull(video.subscribersGained),
+        estimatedRevenue: numberOrNull(video.estimatedRevenue),
         createdAt: video.createdAt || new Date().toISOString(),
         updatedAt: video.updatedAt || new Date().toISOString()
     };
@@ -133,6 +139,10 @@ function getSignal(video) {
             label: 'Ждём 7 дней',
             description: 'Добавь просмотры за 7 дней — тогда появится фактический multiplier.'
         };
+    }
+
+    if (!isFiniteNumber(video.expectedMultiplier)) {
+        return { tone: 'blue', label: 'Нужна гипотеза', description: 'Метрики пришли из YouTube. Добавь ожидаемый multiplier и медиану канала, чтобы оценить гипотезу.' };
     }
 
     if (actual >= video.expectedMultiplier * 0.85) {
@@ -238,7 +248,7 @@ function renderResults() {
                     </div>
                 </div>
 
-                <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+                <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-6">
                     ${metric('Ожидание', video.expectedMultiplier, '×')}
                     ${metric('Факт за 7 дней', actual, '×')}
                     ${metric('Медиана 7 дн.', video.baselineViews)}
@@ -246,6 +256,10 @@ function renderResults() {
                     ${metric('7 дней', video.views7d)}
                     ${metric('30 дней', video.views30d)}
                     ${metric('CTR', video.ctr, '%')}
+                    ${metric('Likes', video.likes)}
+                    ${metric('Comments', video.comments)}
+                    ${metric('Subscribers, 30d', video.subscribersGained)}
+                    ${metric('Revenue, 30d', video.estimatedRevenue)}
                     ${metric('Ср. просмотр', video.averageViewedPercent, '%')}
                 </div>
 
@@ -317,7 +331,7 @@ function deleteVideo(id) {
     if ($('editingId').value === id) resetForm();
 }
 
-function submitVideo(event) {
+async function submitVideo(event) {
     event.preventDefault();
     const title = $('videoTitle').value.trim();
     const url = $('videoUrl').value.trim();
@@ -418,11 +432,33 @@ function importBackup(event) {
     reader.readAsText(file);
 }
 
+async function loadAutomaticVideos() {
+    try {
+        const response = await fetch('data/my_videos_latest.json', { cache: 'no-store' });
+        if (!response.ok) return;
+        const report = await response.json();
+        const automatic = Array.isArray(report.videos) ? report.videos.map(normalizeVideo).filter(Boolean) : [];
+        if (!automatic.length) return;
+        const manualByUrl = new Map(myVideos.map(video => [video.url, video]));
+        const automaticUrls = new Set(automatic.map(video => video.url));
+        const mergedAutomatic = automatic.map(video => {
+            const manual = manualByUrl.get(video.url);
+            return manual ? { ...video, topic: manual.topic, expectedMultiplier: manual.expectedMultiplier, baselineViews: manual.baselineViews, createdAt: manual.createdAt, updatedAt: manual.updatedAt } : video;
+        });
+        myVideos = [...mergedAutomatic, ...myVideos.filter(video => !automaticUrls.has(video.url))];
+        render();
+        $('youtubeConnectionText').textContent = `Канал: ${report.channel?.title || 'подключён'}. Обновлено: ${formatDate(report.generatedAt?.slice(0, 10))}.`;
+    } catch (error) {
+        // Before the first GitHub Actions run the manual journal stays usable.
+    }
+}
+
 function init() {
     myVideos = loadVideos();
     $('videoForm').addEventListener('submit', submitVideo);
     resetForm();
     render();
+    loadAutomaticVideos();
 }
 
 init();
