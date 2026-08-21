@@ -17,7 +17,7 @@ function init() {
 
     // Если локальный список пуст — подтягиваем каналы из свежего monitor-отчёта,
     // чтобы админка показывала тех же конкурентов, что и главная страница.
-    if (competitors.length === 0) {
+    if (competitors.length === 0 && !hasStoredCompetitors()) {
         seedFromMonitorReport().then(() => {
             renderList();
             updateStats();
@@ -84,6 +84,15 @@ function loadFromStorage() {
     }
 }
 
+function hasStoredCompetitors() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw !== null && Array.isArray(JSON.parse(raw));
+    } catch (e) {
+        return false;
+    }
+}
+
 function saveToStorage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(competitors));
 }
@@ -103,10 +112,6 @@ function parseYoutubeUrl(url) {
     match = url.match(/\/@([a-zA-Z0-9_.-]+)/);
     if (match) return { type: 'handle', id: '@' + match[1], url };
 
-    // /c/CustomName
-    match = url.match(/\/c\/([a-zA-Z0-9_.-]+)/);
-    if (match) return { type: 'custom', id: match[1], url };
-
     // /user/Username
     match = url.match(/\/user\/([a-zA-Z0-9_-]+)/);
     if (match) return { type: 'user', id: match[1], url };
@@ -125,7 +130,7 @@ function handleAdd(e) {
 
     const parsed = parseYoutubeUrl(urlInput.value);
     if (!parsed) {
-        alert('Неверный URL YouTube. Поддерживаются форматы:\n/channel/ID\n/@handle\n/c/name');
+        alert('Неверный URL YouTube. Используйте /channel/UC..., /@handle или /user/name.');
         return;
     }
 
@@ -335,16 +340,45 @@ function updateStats() {
 // EXPORT
 // ═══════════════════════════════════════════
 
+function showExportStatus(message, type = 'success') {
+    const status = document.getElementById('exportStatus');
+    status.textContent = message;
+    status.className = type === 'error'
+        ? 'mx-5 mt-3 rounded-lg border border-red-700 bg-red-950/40 px-3 py-2 text-sm text-red-200'
+        : 'mx-5 mt-3 rounded-lg border border-blue-700 bg-blue-950/40 px-3 py-2 text-sm text-blue-100';
+}
+
+function buildCiCompetitors() {
+    const active = competitors.filter(c => c.active);
+    const unsupported = active.filter(c => c.type === 'custom' || (!c.id.startsWith('UC') && !c.id.startsWith('@') && c.type !== 'user'));
+    if (unsupported.length) {
+        showExportStatus('Не удалось подготовить конфиг: для этих каналов используйте /channel/UC..., /@handle или /user/name.', 'error');
+        return null;
+    }
+
+    return active.map(c => {
+        if (c.type === 'user') return { channel_username: c.id };
+        if (c.id.startsWith('@')) return { channel_handle: c.id };
+        return { channel_id: c.id };
+    });
+}
+
 function exportToConfig() {
+    const ciCompetitors = buildCiCompetitors();
+    if (!ciCompetitors) return;
+    if (!ciCompetitors.length) {
+        showExportStatus('Отметьте хотя бы один канал как активный перед экспортом.', 'error');
+        return;
+    }
+
     const config = {
+        _comment: 'Public configuration for GitHub Actions. Keep API keys only in the YOUTUBE_API_KEY secret.',
         youtube_api_key: "",
-        use_youtube_api: false,
+        use_youtube_api: true,
         telegram_bot_token: "",
         telegram_chat_id: "",
         enable_telegram: false,
-        competitors: competitors.filter(c => c.active).map(c => ({
-            channel_id: c.id
-        })),
+        competitors: ciCompetitors,
         settings: {
             videos_per_competitor: 10,
             top_videos_to_analyze: 10,
@@ -361,8 +395,10 @@ function exportToConfig() {
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'config.json';
+    link.download = 'config.example.json';
     link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 0);
+    showExportStatus('Скачан config.example.json. Замени им одноимённый файл в репозитории, сделай commit/push — следующий запуск Actions начнёт собирать этот список.');
 }
 
 function exportToCSV() {

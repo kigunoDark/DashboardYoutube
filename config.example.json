@@ -1,0 +1,38 @@
+{
+  "_comment": "Public configuration for GitHub Actions. Keep API keys only in the YOUTUBE_API_KEY secret.",
+  "youtube_api_key": "",
+  "use_youtube_api": true,
+  "telegram_bot_token": "",
+  "telegram_chat_id": "",
+  "enable_telegram": false,
+  "competitors": [
+    {"channel_id": "UC2UXDak6o7rBm23k3Vv5dww", "notes": ""},
+    {"channel_id": "UCwr-evhuzGZgDFrq_1pLt_A", "notes": ""},
+    {"channel_id": "UCbILxHiByrV3fPDYxpqUlWQ", "notes": ""},
+    {"channel_id": "UCjQ2f-S5_9LNXZ0oALoxZBw", "notes": ""},
+    {"channel_id": "UCJKzyA7mf4L6CtdNuRFExTw", "notes": ""},
+    {"channel_id": "UCPhyA52nHlW3L6r-7sDfcyg", "notes": ""},
+    {"channel_id": "UCfBHkCIezL1pzMI6Vu4GUVw", "notes": ""},
+    {"channel_id": "UCN7DlL9ImJCfsPNU_SgFlRQ", "notes": ""},
+    {"channel_id": "UCQsdoxsb3kqgwUrRSnoqJaw", "notes": ""},
+    {"channel_id": "UCzfoE4EpXFoGxTnq0uPU4Hw", "notes": ""}
+  ],
+  "settings": {
+    "videos_per_competitor": 10,
+    "top_videos_to_analyze": 10,
+    "monitor_interval_days": 2,
+    "language": "ru",
+    "niche_keywords": [
+      "IT career",
+      "programming",
+      "relocation",
+      "IT salary",
+      "junior developer",
+      "staff engineer",
+      "AI for developers",
+      "IT interviews",
+      "IT job market",
+      "migration"
+    ]
+  }
+}

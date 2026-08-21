@@ -18,18 +18,28 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install demand-analysis dependency
+        run: pip install pytrends --quiet
+
       - name: Collect YouTube data
         run: python scripts/collect.py
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
 
+      - name: Generate ideas from the fresh monitor report
+        run: python scripts/02_analyze.py
+
+      - name: Generate the script index
+        run: python scripts/03_scriptwriter.py
+
       - name: Check demand (Google Trends)
-        run: |
-          pip install pytrends --quiet
-          python scripts/demand.py
+        run: python scripts/demand.py
+
+      - name: Verify dashboard reports
+        run: python scripts/validate_dashboard_data.py
 
       - name: Commit updated reports
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "data: auto-report ${{ github.run_number }}"
-          file_pattern: "data/**/*.json dashboard/data/*.json"
+          file_pattern: "data/reports/** dashboard/data/*.json"

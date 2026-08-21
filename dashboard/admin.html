@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BUKA Admin — Управление конкурентами</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
     <base id="appBase" href="/dashboard/">
     <script>
         if (!location.pathname.startsWith('/dashboard/')) {
             document.getElementById('appBase').href = './';
         }
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- The base element is declared before relative assets above. -->
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
     <!-- Header -->
@@ -44,7 +45,7 @@
                     <i class="fas fa-plus mr-2"></i>Добавить
                 </button>
             </form>
-            <p class="text-xs text-gray-500 mt-2">Поддерживаются: <code class="bg-gray-700 px-1 rounded">/channel/UC...</code>, <code class="bg-gray-700 px-1 rounded">/@handle</code>, <code class="bg-gray-700 px-1 rounded">/c/name</code>, <code class="bg-gray-700 px-1 rounded">/user/name</code></p>
+            <p class="text-xs text-gray-500 mt-2">Для GitHub Actions поддерживаются: <code class="bg-gray-700 px-1 rounded">/channel/UC...</code>, <code class="bg-gray-700 px-1 rounded">/@handle</code>, <code class="bg-gray-700 px-1 rounded">/user/name</code></p>
         </div>
 
         <!-- Stats -->
@@ -81,11 +82,12 @@
                     </button>
                     <button onclick="selectAll(true)" class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">Все активны</button>
                     <button onclick="selectAll(false)" class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">Все неактивны</button>
-                    <button onclick="exportToConfig()" class="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded transition">
-                        <i class="fas fa-download mr-1"></i>config.json
+                    <button onclick="exportToConfig()" class="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded transition" title="Скачать список для GitHub Actions">
+                        <i class="fas fa-download mr-1"></i>Для Actions
                     </button>
                 </div>
             </div>
+            <div id="exportStatus" class="hidden mx-5 mt-3 rounded-lg border px-3 py-2 text-sm" role="status"></div>
             <!-- Scrollable list -->
             <div id="competitorsList" class="divide-y divide-gray-700 max-h-[500px] overflow-y-auto">
                 <!-- Dynamic content -->

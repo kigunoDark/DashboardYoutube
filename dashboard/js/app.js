@@ -81,6 +81,15 @@ function getAdminCompetitors() {
     return [];
 }
 
+function hasStoredCompetitors() {
+    try {
+        const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+        return raw !== null && Array.isArray(JSON.parse(raw));
+    } catch (e) {
+        return false;
+    }
+}
+
 // ═══════════════════════════════════════════
 // FILE HANDLING
 // ═══════════════════════════════════════════
@@ -126,8 +135,16 @@ function categorizeFile(filename, data) {
 // ═══════════════════════════════════════════
 
 function buildCompetitorsList() {
-    const adminList = getAdminCompetitors().filter(c => c.active !== false);
     const monitorData = currentData.monitor?.data || [];
+    const useAdminList = hasStoredCompetitors();
+    const adminList = useAdminList
+        ? getAdminCompetitors().filter(c => c.active !== false)
+        : monitorData.map(ch => ({
+            id: ch.channel_id,
+            name: ch.channel_title || ch.channel_id,
+            url: `https://www.youtube.com/channel/${ch.channel_id}`,
+            active: true
+        }));
 
     const monitorMap = new Map();
     monitorData.forEach(ch => {
@@ -136,6 +153,9 @@ function buildCompetitorsList() {
 
     const result = [];
 
+    // The report is the initial source of truth. Once the admin page has
+    // saved a list (including an intentionally empty one), its active items
+    // become the dashboard filter for this browser.
     adminList.forEach(admin => {
         const id = admin.id;
         const monitored = monitorMap.get(id);

@@ -23,10 +23,43 @@ if hasattr(sys.stdout, "reconfigure"):
 
 BASE_DIR = Path(__file__).parent.parent
 CONFIG_PATH = BASE_DIR / "config.json"
+CONFIG_TEMPLATE_PATH = BASE_DIR / "config.example.json"
 REPORTS_DIR = BASE_DIR / "data" / "reports"
 DASH_DATA_DIR = BASE_DIR / "dashboard" / "data"
 
 API_KEY = os.environ.get("YOUTUBE_API_KEY", "")
+
+def load_config():
+    """Load local settings or the checked-in, secret-free CI template."""
+    for path in (CONFIG_PATH, CONFIG_TEMPLATE_PATH):
+        if path.exists():
+            with open(path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+            break
+    else:
+        raise FileNotFoundError(
+            "Configuration not found. Create config.json locally or add config.example.json."
+        )
+
+    competitors = config.get("competitors")
+    if not isinstance(competitors, list) or not competitors:
+        raise ValueError("Configuration must contain at least one competitor.")
+
+    allowed_identifiers = ("channel_id", "channel_handle", "channel_username")
+    for competitor in competitors:
+        if not isinstance(competitor, dict):
+            raise ValueError("Every competitor must be an object.")
+        present = [key for key in allowed_identifiers if competitor.get(key)]
+        if len(present) != 1:
+            raise ValueError(
+                "Every competitor must have exactly one of: " + ", ".join(allowed_identifiers)
+            )
+
+    if not isinstance(config.get("settings"), dict):
+        config["settings"] = {}
+
+    print(f"Using configuration: {path.name}")
+    return config
 
 # channels.list = 1 юнит за вызов
 # playlistItems.list = 1 юнит за вызов
@@ -40,6 +73,35 @@ def yt(endpoint, params):
     url = f"https://www.googleapis.com/youtube/v3/{endpoint}?" + urllib.parse.urlencode(params)
     with urllib.request.urlopen(url, timeout=20) as r:
         return json.loads(r.read().decode("utf-8"))
+
+
+def resolve_channel_ids(competitors):
+    """Resolve handles/usernames once, then use canonical IDs for collection."""
+    selector_by_field = {
+        "channel_handle": "forHandle",
+        "channel_username": "forUsername",
+    }
+    channel_ids = []
+    seen = set()
+
+    for competitor in competitors:
+        channel_id = competitor.get("channel_id")
+        if not channel_id:
+            field = next(key for key in selector_by_field if competitor.get(key))
+            lookup = yt("channels", {
+                "part": "id",
+                selector_by_field[field]: competitor[field],
+            })
+            items = lookup.get("items", [])
+            if not items:
+                raise ValueError(f"Channel not found for {field}: {competitor[field]}")
+            channel_id = items[0]["id"]
+
+        if channel_id not in seen:
+            seen.add(channel_id)
+            channel_ids.append(channel_id)
+
+    return channel_ids
 
 
 def parse_duration(iso_duration: str) -> int:
@@ -56,7 +118,7 @@ def collect(config):
     """Собрать отчёт по всем конкурентам."""
     competitors = config["competitors"]
     max_videos = config["settings"].get("videos_per_competitor", 15)
-    channel_ids = [c["channel_id"] for c in competitors]
+    channel_ids = resolve_channel_ids(competitors)
 
     # 1 запрос: статистика всех каналов сразу
     ch_data = yt("channels", {
@@ -152,8 +214,7 @@ def main():
         print("❌ YOUTUBE_API_KEY не задан (переменная окружения)")
         sys.exit(1)
 
-    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-        config = json.load(f)
+    config = load_config()
 
     print(f"Collecting data for {len(config['competitors'])} competitors...")
     report = collect(config)
