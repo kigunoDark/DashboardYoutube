@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUKA YT Radar — Мои результаты</title>
+    <base id="appBase" href="/dashboard/">
+    <script>
+        if (!location.pathname.startsWith('/dashboard/')) {
+            document.getElementById('appBase').href = './';
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="min-h-screen bg-[#0d1117] text-white">
+    <header class="sticky top-0 z-50 border-b border-[#30363d] bg-[#161b22]">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+                    <i class="fas fa-chart-line text-sm text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">Мои результаты</h1>
+                    <p class="text-xs text-gray-500">Проверка гипотез по опубликованным видео</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap justify-end gap-2">
+                <button onclick="exportBackup()" class="rounded-lg border border-[#30363d] bg-[#21262d] px-3 py-1.5 text-sm transition hover:bg-[#30363d]" title="Скачать резервную копию">
+                    <i class="fas fa-download mr-1"></i>Экспорт
+                </button>
+                <label class="cursor-pointer rounded-lg border border-[#30363d] bg-[#21262d] px-3 py-1.5 text-sm transition hover:bg-[#30363d]" title="Загрузить резервную копию">
+                    <i class="fas fa-upload mr-1"></i>Импорт
+                    <input id="backupInput" type="file" accept="application/json,.json" class="hidden" onchange="importBackup(event)">
+                </label>
+                <a href="index.html" class="rounded-lg border border-[#30363d] bg-[#21262d] px-3 py-1.5 text-sm transition hover:bg-[#30363d]">
+                    <i class="fas fa-arrow-left mr-1"></i>Дашборд
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 py-6">
+        <section class="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-[#30363d] bg-gradient-to-br from-[#161b22] to-[#10221b] p-5 md:flex-row md:items-center">
+            <div>
+                <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-400">Feedback MVP</p>
+                <h2 class="text-2xl font-bold">От гипотезы к следующему решению</h2>
+                <p class="mt-2 max-w-2xl text-sm text-gray-400">Сохраняй ожидание до публикации, затем добавляй реальные метрики. Сигналы помогают выбрать следующий эксперимент, но не заменяют CTR и удержание из YouTube Studio.</p>
+            </div>
+            <div class="rounded-xl border border-emerald-800/70 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-100">
+                <i class="fas fa-shield-alt mr-2 text-emerald-400"></i>Данные хранятся только в этом браузере.
+            </div>
+        </section>
+
+        <div id="feedbackStatus" class="mb-5 hidden rounded-lg border px-4 py-3 text-sm" role="status"></div>
+
+        <section class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div class="rounded-xl border border-[#30363d] bg-[#161b22] p-4">
+                <p class="text-xs text-gray-500">Всего видео</p>
+                <p id="totalVideos" class="mt-1 text-2xl font-bold">0</p>
+            </div>
+            <div class="rounded-xl border border-[#30363d] bg-[#161b22] p-4">
+                <p class="text-xs text-gray-500">Есть результат за 7 дней</p>
+                <p id="reviewedVideos" class="mt-1 text-2xl font-bold">0</p>
+            </div>
+            <div class="rounded-xl border border-[#30363d] bg-[#161b22] p-4">
+                <p class="text-xs text-gray-500">Гипотезы подтверждаются</p>
+                <p id="validatedRate" class="mt-1 text-2xl font-bold text-emerald-400">—</p>
+            </div>
+            <div class="rounded-xl border border-[#30363d] bg-[#161b22] p-4">
+                <p class="text-xs text-gray-500">Средний факт. multiplier</p>
+                <p id="averageMultiplier" class="mt-1 text-2xl font-bold text-blue-400">—</p>
+            </div>
+        </section>
+
+        <section class="mb-6 rounded-2xl border border-[#30363d] bg-[#161b22] p-5">
+            <div class="mb-5 flex flex-col justify-between gap-2 md:flex-row md:items-end">
+                <div>
+                    <h2 id="formTitle" class="text-lg font-bold"><i class="fas fa-plus-circle mr-2 text-emerald-400"></i>Добавить опубликованное видео</h2>
+                    <p class="mt-1 text-sm text-gray-500">Минимум для сравнения: гипотеза, медиана вашего канала за 7 дней и просмотры ролика за 7 дней.</p>
+                </div>
+                <button id="cancelEditButton" type="button" onclick="cancelEdit()" class="hidden text-sm text-gray-400 transition hover:text-white">Отменить редактирование</button>
+            </div>
+
+            <form id="videoForm" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <input id="editingId" type="hidden">
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Название ролика *</span>
+                    <input id="videoTitle" required maxlength="180" placeholder="Например: Как получить оффер в 2026" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Ссылка на YouTube *</span>
+                    <input id="videoUrl" type="url" required placeholder="https://youtube.com/watch?v=..." class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Дата публикации *</span>
+                    <input id="publishedAt" type="date" required class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition focus:border-emerald-500">
+                </label>
+                <label class="block md:col-span-2">
+                    <span class="mb-1 block text-sm text-gray-300">Тема / гипотеза *</span>
+                    <input id="videoTopic" required maxlength="240" placeholder="Почему эта тема и угол должны сработать" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Ожидаемый multiplier *</span>
+                    <input id="expectedMultiplier" type="number" min="0.1" step="0.1" required placeholder="3" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block md:col-span-2">
+                    <span class="mb-1 block text-sm text-gray-300">Ваша медиана просмотров за 7 дней *</span>
+                    <input id="baselineViews" type="number" min="1" step="1" required placeholder="Например: 12000" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <div class="hidden xl:block"></div>
+
+                <div class="md:col-span-2 xl:col-span-3"><hr class="border-[#30363d]"></div>
+                <p class="md:col-span-2 xl:col-span-3 text-sm text-gray-500">Фактические метрики из YouTube Studio — можно заполнить сразу или позднее через «Изменить».</p>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Просмотры за 24 ч</span>
+                    <input id="views24h" type="number" min="0" step="1" placeholder="Необязательно" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Просмотры за 7 дней</span>
+                    <input id="views7d" type="number" min="0" step="1" placeholder="Для фактического multiplier" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Просмотры за 30 дней</span>
+                    <input id="views30d" type="number" min="0" step="1" placeholder="Необязательно" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Показы</span>
+                    <input id="impressions" type="number" min="0" step="1" placeholder="Необязательно" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">CTR, %</span>
+                    <input id="ctr" type="number" min="0" max="100" step="0.1" placeholder="Например: 5.8" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <label class="block">
+                    <span class="mb-1 block text-sm text-gray-300">Средний просмотр, %</span>
+                    <input id="averageViewedPercent" type="number" min="0" max="100" step="0.1" placeholder="Например: 42" class="w-full rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-2 text-sm outline-none transition placeholder:text-gray-600 focus:border-emerald-500">
+                </label>
+                <div class="md:col-span-2 xl:col-span-3 flex flex-wrap items-center gap-3 pt-1">
+                    <button id="submitButton" type="submit" class="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium transition hover:bg-emerald-500"><i class="fas fa-save mr-2"></i>Сохранить видео</button>
+                    <span class="text-xs text-gray-500">Фактический multiplier = просмотры за 7 дней ÷ медиана за 7 дней.</span>
+                </div>
+            </form>
+        </section>
+
+        <section>
+            <div class="mb-3 flex items-end justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-bold">Журнал результатов</h2>
+                    <p class="mt-1 text-sm text-gray-500">Сначала это не приговор ролику, а сигнал для следующего эксперимента.</p>
+                </div>
+                <span id="resultsCount" class="text-sm text-gray-500">0 видео</span>
+            </div>
+            <div id="resultsList" class="space-y-3"></div>
+        </section>
+    </main>
+
+    <script src="js/feedback.js"></script>
+</body>
+</html>
