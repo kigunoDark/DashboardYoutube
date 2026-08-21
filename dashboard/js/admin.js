@@ -14,10 +14,55 @@ const ADMIN_ITEMS_PER_PAGE = 10;
 
 function init() {
     loadFromStorage();
-    renderList();
-    updateStats();
+
+    // Если локальный список пуст — подтягиваем каналы из свежего monitor-отчёта,
+    // чтобы админка показывала тех же конкурентов, что и главная страница.
+    if (competitors.length === 0) {
+        seedFromMonitorReport().then(() => {
+            renderList();
+            updateStats();
+        });
+    } else {
+        renderList();
+        updateStats();
+    }
 
     document.getElementById('addForm').addEventListener('submit', handleAdd);
+}
+
+// ═══════════════════════════════════════════
+// SEED FROM MONITOR REPORT
+// ═══════════════════════════════════════════
+
+async function seedFromMonitorReport() {
+    try {
+        const res = await fetch('data/monitor_report_latest.json');
+        if (!res.ok) return false;
+        const data = await res.json();
+        const channels = (data.data || [])
+            .filter(ch => ch.channel_id)
+            .map(ch => ({
+                id: ch.channel_id,
+                name: ch.channel_title || ch.channel_id,
+                url: `https://www.youtube.com/channel/${ch.channel_id}`,
+                active: true
+            }));
+        if (channels.length === 0) return false;
+        competitors = channels;
+        saveToStorage();
+        return true;
+    } catch (e) {
+        console.error('Seed from monitor report failed:', e);
+        return false;
+    }
+}
+
+async function reimportFromReport() {
+    if (!confirm('Заменить текущий список каналами из свежего отчёта?')) return;
+    const ok = await seedFromMonitorReport();
+    if (!ok) alert('Не удалось загрузить monitor_report_latest.json');
+    renderList();
+    updateStats();
 }
 
 // ═══════════════════════════════════════════
@@ -28,14 +73,11 @@ function loadFromStorage() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-            competitors = JSON.parse(raw);
+            const parsed = JSON.parse(raw);
+            competitors = Array.isArray(parsed) ? parsed : [];
         } else {
-            // Default: load from demo data
-            competitors = [
-                { id: 'UC2UXDak6o7rBm23k3Vv5dww', name: 'Tina Huang', url: 'https://www.youtube.com/channel/UC2UXDak6o7rBm23k3Vv5dww', active: true },
-                { id: 'UCwr-evhuzGZgDFrq_1pLt_A', name: 'Error Makes Clever', url: 'https://www.youtube.com/channel/UCwr-evhuzGZgDFrq_1pLt_A', active: true },
-            ];
-            saveToStorage();
+            // Пусто — init() подтянет каналы из monitor-отчёта
+            competitors = [];
         }
     } catch (e) {
         competitors = [];

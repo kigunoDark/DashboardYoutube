@@ -70,6 +70,9 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
+                    <button onclick="reimportFromReport()" class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition" title="Заменить список каналами из свежего monitor-отчёта">
+                        <i class="fas fa-cloud-download-alt mr-1"></i>Из отчёта
+                    </button>
                     <button onclick="selectAll(true)" class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">Все активны</button>
                     <button onclick="selectAll(false)" class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">Все неактивны</button>
                     <button onclick="exportToConfig()" class="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded transition">
