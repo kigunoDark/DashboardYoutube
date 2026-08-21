@@ -1,4 +1,5 @@
 {
+  "cleanUrls": true,
   "redirects": [
     { "source": "/index.html", "destination": "/", "permanent": false },
     { "source": "/admin.html", "destination": "/admin", "permanent": false },
