@@ -134,13 +134,10 @@ function buildCompetitorsList() {
         monitorMap.set(ch.channel_id, ch);
     });
 
-    const seen = new Set();
     const result = [];
 
     adminList.forEach(admin => {
         const id = admin.id;
-        seen.add(id);
-
         const monitored = monitorMap.get(id);
         const enrichedName = monitored?.channel_title || admin.name || id;
         const subs = monitored?.subscriber_count;
@@ -154,25 +151,6 @@ function buildCompetitorsList() {
             subscriber_count: subs || 0,
             thumbnail: thumb || null,
             source: monitored ? 'json' : 'admin'
-        });
-    });
-
-    monitorData.forEach(ch => {
-        if (seen.has(ch.channel_id)) return;
-        seen.add(ch.channel_id);
-
-        const channelName = ch.channel_title || ch.channel_id;
-        const subs = ch.subscriber_count;
-        const thumb = ch.channel_thumbnail;
-
-        result.push({
-            channel_id: ch.channel_id,
-            name: channelName,
-            url: `https://www.youtube.com/channel/${ch.channel_id}`,
-            subscribers: subs ? formatNumber(subs) : '—',
-            subscriber_count: subs || 0,
-            thumbnail: thumb || null,
-            source: 'json'
         });
     });
 
