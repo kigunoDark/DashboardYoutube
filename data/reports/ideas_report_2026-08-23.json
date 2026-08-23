@@ -2,57 +2,57 @@
   "date": "2026-08-23",
   "analysis": {
     "total_videos": 100,
-    "avg_views": 30685,
+    "avg_views": 30745,
     "avg_likes": 972,
     "avg_comments": 73,
     "top_keywords": [
       [
         "https",
-        319
+        320
       ],
       [
         "com",
-        185
+        192
       ],
       [
         "coding",
-        185
+        192
       ],
       [
         "developer",
-        160
+        164
       ],
       [
         "programming",
-        102
+        106
       ],
       [
         "айти",
-        94
+        100
       ],
       [
         "тестировщик",
-        83
+        93
       ],
       [
         "тестировщика",
-        75
+        85
       ],
       [
         "software",
-        69
+        82
       ],
       [
         "www",
-        64
+        67
       ],
       [
         "learning",
-        63
+        66
       ],
       [
         "roadmap",
-        61
+        63
       ],
       [
         "резюме",
@@ -67,86 +67,86 @@
         51
       ],
       [
-        "code",
-        50
+        "shorts",
+        51
       ],
       [
         "web",
         50
       ],
       [
+        "code",
+        48
+      ],
+      [
         "development",
         48
       ],
       [
-        "shorts",
+        "тестирование",
         48
-      ],
-      [
-        "via",
-        46
       ]
     ],
     "top_tags": [
+      [
+        "айтишник",
+        10
+      ],
+      [
+        "программирование",
+        10
+      ],
+      [
+        "it",
+        10
+      ],
+      [
+        "it сфера",
+        10
+      ],
+      [
+        "войти в айти",
+        10
+      ],
       [
         "coding",
         9
       ],
       [
-        "айтишник",
-        9
-      ],
-      [
-        "программирование",
-        9
-      ],
-      [
-        "it",
-        9
-      ],
-      [
-        "it сфера",
-        9
-      ],
-      [
-        "войти в айти",
-        9
-      ],
-      [
         "станислав федоров",
-        8
+        9
       ],
       [
         "стас федоров",
-        8
+        9
       ],
       [
         "айти",
-        8
+        9
       ],
       [
         "it punk",
-        8
+        9
       ],
       [
         "тестировщик",
-        8
+        9
       ],
       [
         "qa тестировщик",
-        8
+        9
       ],
       [
         "тестирование",
-        8
+        9
       ],
       [
         "карьера в it",
-        8
+        9
       ],
       [
         "работа тестировщиком",
-        8
+        9
       ]
     ],
     "top_hashtags": [
@@ -171,23 +171,23 @@
         8
       ],
       [
-        "softwaredeveloper",
+        "aitools",
         7
       ],
       [
-        "aitools",
-        6
+        "programming",
+        7
       ],
       [
-        "programming",
-        6
+        "softwaredeveloper",
+        7
       ],
       [
         "программирование",
         6
       ],
       [
-        "learntocode",
+        "systemdesign",
         5
       ],
       [
@@ -207,7 +207,7 @@
         4
       ],
       [
-        "systemdesign",
+        "programmingmemes",
         4
       ]
     ]
@@ -221,11 +221,11 @@
       "estimated_difficulty": "Средняя",
       "why_works": "Повторяет паттерн топовых видео конкурентов",
       "recommended_tags": [
-        "coding",
         "айтишник",
         "программирование",
         "it",
-        "it сфера"
+        "it сфера",
+        "войти в айти"
       ],
       "recommended_hashtags": [
         "coding",
@@ -245,9 +245,9 @@
         "junior",
         "developer",
         "comparison",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "зарплата",
@@ -268,9 +268,9 @@
         "resume",
         "career",
         "tips",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "резюме",
@@ -290,9 +290,9 @@
         "interview",
         "bigtech",
         "experience",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "собеседование",
@@ -312,9 +312,9 @@
         "ai",
         "programming",
         "future",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "ai",
@@ -334,9 +334,9 @@
         "market",
         "it",
         "trends",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "рыноктруда",
@@ -356,9 +356,9 @@
         "hiring",
         "interview",
         "reverse",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "найм",
@@ -378,9 +378,9 @@
         "relocation",
         "comparison",
         "junior",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "релокация",
@@ -400,9 +400,9 @@
         "confession",
         "career",
         "truth",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "it",
@@ -423,9 +423,9 @@
         "resume",
         "review",
         "reaction",
-        "coding",
         "айтишник",
-        "программирование"
+        "программирование",
+        "it"
       ],
       "recommended_hashtags": [
         "резюме",
