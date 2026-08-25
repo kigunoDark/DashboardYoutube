@@ -2,13 +2,13 @@
   "date": "2026-08-25",
   "analysis": {
     "total_videos": 100,
-    "avg_views": 31655,
-    "avg_likes": 984,
-    "avg_comments": 74,
+    "avg_views": 28652,
+    "avg_likes": 884,
+    "avg_comments": 70,
     "top_keywords": [
       [
         "https",
-        321
+        319
       ],
       [
         "coding",
@@ -16,7 +16,7 @@
       ],
       [
         "com",
-        193
+        192
       ],
       [
         "developer",
@@ -43,12 +43,12 @@
         82
       ],
       [
-        "www",
-        67
-      ],
-      [
         "learning",
         66
+      ],
+      [
+        "www",
+        64
       ],
       [
         "roadmap",
@@ -80,7 +80,7 @@
       ],
       [
         "code",
-        48
+        49
       ],
       [
         "development",
