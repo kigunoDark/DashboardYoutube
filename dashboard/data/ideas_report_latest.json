@@ -2,13 +2,13 @@
   "date": "2026-08-26",
   "analysis": {
     "total_videos": 100,
-    "avg_views": 29331,
-    "avg_likes": 900,
-    "avg_comments": 72,
+    "avg_views": 29554,
+    "avg_likes": 903,
+    "avg_comments": 73,
     "top_keywords": [
       [
         "https",
-        318
+        314
       ],
       [
         "coding",
@@ -16,7 +16,7 @@
       ],
       [
         "com",
-        192
+        189
       ],
       [
         "developer",
@@ -24,7 +24,7 @@
       ],
       [
         "programming",
-        106
+        105
       ],
       [
         "тестировщик",
@@ -40,15 +40,7 @@
       ],
       [
         "software",
-        82
-      ],
-      [
-        "learning",
-        66
-      ],
-      [
-        "www",
-        65
+        79
       ],
       [
         "roadmap",
@@ -59,8 +51,16 @@
         63
       ],
       [
+        "www",
+        62
+      ],
+      [
         "тестирование",
         55
+      ],
+      [
+        "code",
+        53
       ],
       [
         "scrimba",
@@ -79,12 +79,12 @@
         50
       ],
       [
-        "code",
-        49
-      ],
-      [
         "development",
         48
+      ],
+      [
+        "projects",
+        47
       ]
     ],
     "top_tags": [
@@ -152,26 +152,26 @@
     "top_hashtags": [
       [
         "coding",
-        12
+        11
+      ],
+      [
+        "softwareengineer",
+        10
       ],
       [
         "айти",
         10
       ],
       [
-        "softwareengineer",
-        9
-      ],
-      [
         "shorts",
         8
       ],
       [
-        "programming",
-        7
+        "aitools",
+        6
       ],
       [
-        "aitools",
+        "programming",
         6
       ],
       [
@@ -229,8 +229,8 @@
       ],
       "recommended_hashtags": [
         "coding",
-        "айти",
-        "softwareengineer"
+        "softwareengineer",
+        "айти"
       ]
     },
     {
@@ -254,7 +254,7 @@
         "it",
         "junior",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -276,7 +276,7 @@
         "резюме",
         "карьера",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -298,7 +298,7 @@
         "собеседование",
         "bigtech",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -320,7 +320,7 @@
         "ai",
         "программирование",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -342,7 +342,7 @@
         "рыноктруда",
         "it",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -364,7 +364,7 @@
         "найм",
         "собеседование",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -386,7 +386,7 @@
         "релокация",
         "сравнение",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -409,7 +409,7 @@
         "карьера",
         "правда",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     },
     {
@@ -431,7 +431,7 @@
         "резюме",
         "разбор",
         "coding",
-        "айти"
+        "softwareengineer"
       ]
     }
   ],
