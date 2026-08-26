@@ -1,71 +1,76 @@
 {
   "date": "2026-08-26",
-  "generated_at": "2026-08-26T07:10:36.353814Z",
+  "generated_at": "2026-08-26T13:18:04.106116Z",
   "topics": [
     {
       "title": "Before You Build a Feature, Do This First (It Will Save You Hours)",
-      "multiplier": 57.92218285373688,
-      "trend": "none"
+      "multiplier": 58.124094592359846,
+      "trend": "unknown"
     },
     {
       "title": "Learn 10X Faster In 10 Minutes",
-      "multiplier": 20.24202059202059,
-      "trend": "none"
+      "multiplier": 20.26654234454376,
+      "trend": "unknown"
     },
     {
       "title": "ВАЛЮТНАЯ УДАЛЕНКА 2026: ПРАКТИЧЕСКИЙ ГАЙД. Часть 1",
-      "multiplier": 9.95898277276456,
-      "trend": "none"
+      "multiplier": 11.460705882352942,
+      "trend": "unknown"
     },
     {
       "title": "Самое ГЕНИАЛЬНОЕ воровство в истории игр #shorts #gamedev #gaming #minecraft #terraria",
-      "multiplier": 8.364123637663035,
-      "trend": "none"
+      "multiplier": 8.353193007491972,
+      "trend": "unknown"
     },
     {
       "title": "Как я вывел КРИНЖ РЕЗЮМЕ В ТОП 1 хедхантера",
-      "multiplier": 7.969796350768052,
-      "trend": "none"
+      "multiplier": 7.969146514615402,
+      "trend": "unknown"
     },
     {
       "title": "Most developers miss this.",
-      "multiplier": 7.024603463690851,
-      "trend": "none"
+      "multiplier": 7.031585910368778,
+      "trend": "unknown"
     },
     {
       "title": "Every AI Model Explained In 20 Minutes (Update)",
-      "multiplier": 5.587966537966538,
-      "trend": "none"
-    },
-    {
-      "title": "This is how you’re going to be a Web Developer by the end of the year (2026 Roadmap)",
-      "multiplier": 5.307659194013047,
-      "trend": "none"
-    },
-    {
-      "title": "Truer words were never spoken 🤣",
-      "multiplier": 4.664219644692409,
-      "trend": "none"
-    },
-    {
-      "title": "How to Build a Website Using AI",
-      "multiplier": 4.462958836076534,
-      "trend": "new"
+      "multiplier": 5.610057231046235,
+      "trend": "unknown"
     },
     {
       "title": "ДУМАЮ, ЧТО СТОЮ 100К",
-      "multiplier": 3.8009141696292534,
-      "trend": "none"
+      "multiplier": 5.529411764705882,
+      "trend": "unknown"
+    },
+    {
+      "title": "This is how you’re going to be a Web Developer by the end of the year (2026 Roadmap)",
+      "multiplier": 5.341557797254837,
+      "trend": "unknown"
+    },
+    {
+      "title": "How to Build a Website Using AI",
+      "multiplier": 4.494299958718364,
+      "trend": "unknown"
+    },
+    {
+      "title": "Truer words were never spoken 🤣",
+      "multiplier": 3.9422552664188353,
+      "trend": "unknown"
+    },
+    {
+      "title": "КТО ДВИНЕТСЯ, ТОТ",
+      "multiplier": 3.582496413199426,
+      "trend": "unknown"
     },
     {
       "title": "How to Become a Software Developer AI Can't Replace | No Degree | 500+ Products Built",
-      "multiplier": 3.547992741396326,
-      "trend": "new"
+      "multiplier": 3.5406306563780126,
+      "trend": "unknown"
     },
     {
       "title": "Программисты разучились думать — во всем виноват ИИ - Фил Ранжин",
-      "multiplier": 3.0773902211149173,
-      "trend": "none"
+      "multiplier": 3.0846429127119963,
+      "trend": "unknown"
     }
   ]
 }
