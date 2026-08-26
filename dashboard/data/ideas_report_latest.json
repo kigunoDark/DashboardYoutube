@@ -2,8 +2,8 @@
   "date": "2026-08-26",
   "analysis": {
     "total_videos": 100,
-    "avg_views": 28980,
-    "avg_likes": 893,
+    "avg_views": 29172,
+    "avg_likes": 896,
     "avg_comments": 72,
     "top_keywords": [
       [
@@ -12,7 +12,7 @@
       ],
       [
         "coding",
-        195
+        193
       ],
       [
         "com",
@@ -171,10 +171,6 @@
         7
       ],
       [
-        "softwaredeveloper",
-        7
-      ],
-      [
         "aitools",
         6
       ],
@@ -183,12 +179,12 @@
         6
       ],
       [
-        "тестировщик",
+        "softwaredeveloper",
         6
       ],
       [
-        "systemdesign",
-        5
+        "тестировщик",
+        6
       ],
       [
         "карьеравайти",
@@ -200,6 +196,10 @@
       ],
       [
         "programmingmemes",
+        4
+      ],
+      [
+        "systemdesign",
         4
       ],
       [
